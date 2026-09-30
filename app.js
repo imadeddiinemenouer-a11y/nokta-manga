@@ -2,7 +2,7 @@
    ALPHA COMIX — التطبيق الاحترافي الكامل
    ============================================================ */
 
-// ============ 1. الإعداد والتهيئة ============
+// ============ 1. الإعداد ============
 const C = window.NOKTA_CONFIG || {};
 const hasConfig = C.supabaseUrl && C.supabasePublishableKey && !C.supabaseUrl.includes('YOUR_') && !C.supabasePublishableKey.includes('YOUR_');
 const sb = hasConfig ? supabase.createClient(C.supabaseUrl, C.supabasePublishableKey) : null;
@@ -25,10 +25,10 @@ const STATIC_AGES = ['13+', '16+', '18+'];
 const STATIC_STATUS = ['مستمرة', 'متوقفة', 'منتهية'];
 const STATIC_GENRES = ['أكشن','فانتازيا','رومانسية','غموض','نظام','دراما','مغامرة','مدرسي','شونين','قوى خاصة','ناجٍ','مصاصين','سحر','مملكة','تاريخي','ارتقاء','رياضة','خيال','حياة يومية','جوسي','فنون قتالية','سينين','شوجو','إيسيكاي','ميكا','رعب','نفسي','عسكري','موسيقي'];
 
-const ICON_SUN = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
-const ICON_MOON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>';
+const ICON_SUN = '<svg class="ico-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
+const ICON_MOON = '<svg class="ico-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>';
 
-// ============ 2. الأدوات العامة ============
+// ============ 2. الأدوات ============
 function toast(m) {
   const t = $('#toast');
   if (!t) return;
@@ -63,7 +63,7 @@ function theme() {
   if (l) document.documentElement.setAttribute('data-theme', 'light');
   else document.documentElement.removeAttribute('data-theme');
   const b = $('#themeBtn');
-  if (b) b.innerHTML = l ? ICON_MOON : ICON_SUN;
+  if (b) b.innerHTML = ICON_SUN + ICON_MOON;
 }
 
 function toggleTheme() {
@@ -72,7 +72,7 @@ function toggleTheme() {
 }
 theme();
 
-// ============ 3. التهيئة والمصادقة ============
+// ============ 3. التهيئة ============
 async function boot() {
   if (!sb) {
     app.innerHTML = `<div class="panel"><h2>⚙️ إعداد Supabase مطلوب</h2><p style="color:var(--muted);line-height:2;margin-top:10px">انسخ <b>config.example.js</b> إلى <b>config.js</b> واملأ القيم.</p></div>`;
@@ -101,10 +101,8 @@ async function loadProfile() {
 
 function refreshHeader() {
   if (!sb) return;
-  const a = $('#adminBtn');
-  if (a) a.style.display = profile?.role === 'admin' ? 'flex' : 'none';
-  const n = $('#notifBtn');
-  if (n) n.style.display = session ? 'flex' : 'none';
+  const a = $('#adminBtn'); if (a) a.style.display = profile?.role === 'admin' ? 'flex' : 'none';
+  const n = $('#notifBtn'); if (n) n.style.display = session ? 'flex' : 'none';
   const ab = $('#authBtn');
   if (ab) {
     ab.style.background = session ? 'var(--grad)' : '';
@@ -115,10 +113,7 @@ function refreshHeader() {
   if (um) um.innerHTML = session
     ? `<span>👤</span><b>${esc(profile?.username || session.user.email)}</b>`
     : `<span>👤</span><span>غير مسجل</span>`;
-  if (session) {
-    loadBalance();
-    checkNotifications();
-  }
+  if (session) { loadBalance(); checkNotifications(); }
 }
 
 async function loadBalance() {
@@ -340,14 +335,10 @@ function toggleDropdown(id) {
   if (!open) {
     t.classList.add('show');
     const w = t.closest('.filter-wrap');
-    if (w) {
-      const b = w.querySelector('.filter-select');
-      if (b) b.classList.add('active');
-    }
+    if (w) { const b = w.querySelector('.filter-select'); if (b) b.classList.add('active'); }
     buildDropdownContent(id);
   }
 }
-
 document.addEventListener('click', e => {
   if (!e.target.closest('.filter-wrap')) {
     $$('.dropdown').forEach(d => d.classList.remove('show'));
@@ -376,12 +367,10 @@ function buildDropdownContent(id) {
       + `<div class="dropdown-actions"><button onclick="clearFilter('genres')">مسح</button><button class="primary" onclick="closeDropdowns()">تم</button></div>`;
   }
 }
-
 function closeDropdowns() {
   $$('.dropdown').forEach(d => d.classList.remove('show'));
   $$('.filter-select').forEach(b => b.classList.remove('active'));
 }
-
 function toggleFilter(k, v) {
   const a = fState[k];
   const i = a.indexOf(v);
@@ -389,11 +378,7 @@ function toggleFilter(k, v) {
   else a.push(v);
   drawBrowse();
 }
-
-function clearFilter(k) {
-  fState[k] = [];
-  drawBrowse();
-}
+function clearFilter(k) { fState[k] = []; drawBrowse(); }
 
 function drawBrowse() {
   let list = browseWorks.filter(w => {
@@ -507,29 +492,22 @@ async function toggleFavorite(workId) {
   toast(isFav ? 'تم الحذف من المفضلة' : '❤️ تم الإضافة للمفضلة');
   route();
 }
-
 async function rateWork(workId, score) {
   if (!session) return go('auth');
   await sb.from('ratings').upsert({ user_id: session.user.id, work_id: workId, score });
   toast('⭐ تم التقييم');
   route();
 }
-
 async function postComment(workId) {
   if (!session) return go('auth');
   const input = document.getElementById('commentInput');
   const content = input?.value.trim();
   if (!content) return toast('اكتب تعليقاً');
-  const { error } = await sb.from('comments').insert({
-    user_id: session.user.id,
-    work_id: workId,
-    content
-  });
+  const { error } = await sb.from('comments').insert({ user_id: session.user.id, work_id: workId, content });
   if (error) return toast(error.message);
   toast('✅ تم النشر');
   route();
 }
-
 async function likeComment(commentId) {
   if (!session) return go('auth');
   const { data } = await sb.from('comment_likes')
@@ -537,14 +515,10 @@ async function likeComment(commentId) {
     .eq('user_id', session.user.id)
     .eq('comment_id', commentId)
     .maybeSingle();
-  if (data) {
-    await sb.from('comment_likes').delete().eq('user_id', session.user.id).eq('comment_id', commentId);
-  } else {
-    await sb.from('comment_likes').insert({ user_id: session.user.id, comment_id: commentId });
-  }
+  if (data) await sb.from('comment_likes').delete().eq('user_id', session.user.id).eq('comment_id', commentId);
+  else await sb.from('comment_likes').insert({ user_id: session.user.id, comment_id: commentId });
   route();
 }
-
 async function readChapter(id) {
   const { data, error } = await sb.rpc('can_read_chapter', { p_chapter_id: id });
   if (error) return toast(error.message);
@@ -583,19 +557,18 @@ async function vReader(id) {
   }
 
   const isFav = await isFavorite(ch.work_id);
-  const themeIcon = localStorage.noktaTheme === 'light' ? ICON_MOON : ICON_SUN;
 
   return `<div class="reader-bar">
     <button class="btn sm ghost" onclick="go('work','${ch.work_id}')">→ رجوع</button>
     <div class="reader-title">${esc(ch.work_title)} — الفصل ${ch.number}</div>
     <div class="reader-tools">
-      <button class="reader-tool-btn" onclick="toggleReaderWidth()" title="عرض أوسع" id="widthBtn">
+      <button class="reader-tool-btn" onclick="toggleReaderWidth()" title="عرض أوسع">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16v16H4z"/><path d="M9 4v16M15 4v16"/></svg>
       </button>
-      <button class="reader-tool-btn ${isFav?'is-fav':''}" onclick="toggleFavorite('${ch.work_id}')" title="المفضلة" style="${isFav?'color:var(--accent)':''}">
+      <button class="reader-tool-btn" onclick="toggleFavorite('${ch.work_id}')" title="المفضلة" style="${isFav?'color:var(--accent)':''}">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="${isFav?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
       </button>
-      <button class="reader-tool-btn" onclick="toggleTheme()" title="الوضع الليلي/النهاري">${themeIcon}</button>
+      <button class="reader-tool-btn" onclick="toggleTheme()" title="الوضع الليلي/النهاري">${ICON_SUN}${ICON_MOON}</button>
     </div>
   </div>
   <div class="reader-body ${readerWide?'wide':''}" id="readerBody">${body}</div>
@@ -788,7 +761,38 @@ async function vAdmin() {
       </div>
     </div>`).join('') || '<p style="text-align:center;color:var(--muted);padding:20px">لا توجد أعمال.</p>'}
   </div>
-  <div class="sec-title"><span class="line"></span>➕ إضافة فصل</div>
+  <div class="sec-title"><span class="line"></span>📦 الرفع الجماعي للفصول</div>
+  <div class="panel">
+    <div class="notice">
+      <b>طريقة العمل:</b><br>
+      1. نظّم الفصول في مجلد رئيسي، كل فصل في مجلد فرعي.<br>
+      2. أسماء المجلدات الفرعية يجب أن تحتوي على رقم الفصل (مثل: <code>Chapter 001</code> أو <code>1</code> أو <code>الفصل 1</code>).<br>
+      3. اختر العمل ← ارفع المجلد الرئيسي ← سيتم رفع كل الفصول تلقائياً.
+    </div>
+    <div class="field">
+      <label>اختر العمل</label>
+      <select id="bulkWork">${(ws||[]).map(w=>`<option value="${w.id}">${esc(w.title)}</option>`).join('')}</select>
+    </div>
+    <div class="field">
+      <label>الوضع الافتراضي للفصول الجديدة</label>
+      <select id="bulkDefault">
+        <option value="free">مجاني</option>
+        <option value="locked">مقفل (يُفتح بالنقاط)</option>
+      </select>
+    </div>
+    <div class="bulk-uploader" id="bulkUploader" onclick="document.getElementById('bulkInput').click()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+      <h4>📁 اختر مجلد الفصول</h4>
+      <p>اضغط هنا لاختيار المجلد الرئيسي<br>سيتم رفع جميع الفصول الفرعية تلقائياً</p>
+      <input type="file" id="bulkInput" webkitdirectory multiple accept="image/*">
+    </div>
+    <div class="bulk-progress" id="bulkProgress">
+      <div class="bulk-progress-bar"><div class="bulk-progress-fill" id="bulkFill"></div></div>
+      <div class="bulk-progress-text" id="bulkText">جارٍ التحضير…</div>
+      <div class="bulk-log" id="bulkLog"></div>
+    </div>
+  </div>
+  <div class="sec-title"><span class="line"></span>➕ إضافة فصل واحد</div>
   <div class="panel">
     <div class="field"><label>العمل</label><select id="acWork">${(ws||[]).map(w=>`<option value="${w.id}">${esc(w.title)}</option>`).join('')}</select></div>
     <div class="field"><label>رقم الفصل</label><input id="acNum" type="number"></div>
@@ -1015,7 +1019,136 @@ async function copyTxt(t) {
   }
 }
 
-// ============ 14. الراوتر ============
+// ============ 14. الرفع الجماعي ============
+function initBulkUploader() {
+  const input = document.getElementById('bulkInput');
+  const uploader = document.getElementById('bulkUploader');
+  if (!input || !uploader) return;
+
+  input.addEventListener('change', e => {
+    const files = [...e.target.files];
+    if (files.length) startBulkUpload(files);
+  });
+
+  uploader.addEventListener('dragover', e => { e.preventDefault(); uploader.classList.add('dragover'); });
+  uploader.addEventListener('dragleave', () => uploader.classList.remove('dragover'));
+  uploader.addEventListener('drop', e => {
+    e.preventDefault();
+    uploader.classList.remove('dragover');
+    const files = [...e.dataTransfer.files];
+    if (files.length) startBulkUpload(files);
+  });
+}
+
+async function startBulkUpload(files) {
+  const workId = document.getElementById('bulkWork')?.value;
+  const defaultLock = document.getElementById('bulkDefault')?.value === 'locked';
+  const progress = document.getElementById('bulkProgress');
+  const fill = document.getElementById('bulkFill');
+  const text = document.getElementById('bulkText');
+  const log = document.getElementById('bulkLog');
+
+  if (!workId) return toast('اختر العمل أولاً');
+  progress.classList.add('show');
+  log.innerHTML = '';
+
+  const logMsg = (msg, cls = 'info') => {
+    const line = document.createElement('div');
+    line.className = cls;
+    line.textContent = msg;
+    log.appendChild(line);
+    log.scrollTop = log.scrollHeight;
+  };
+
+  logMsg(`📦 تم العثور على ${files.length} ملف`, 'info');
+
+  // تجميع الملفات حسب المجلد
+  const chaptersMap = new Map();
+  files.forEach(f => {
+    const path = f.webkitRelativePath || f.name;
+    const parts = path.split('/').filter(Boolean);
+    let chapFolder = null;
+    if (parts.length >= 3) chapFolder = parts[1];
+    else if (parts.length === 2) chapFolder = parts[0];
+    else return;
+
+    if (!chaptersMap.has(chapFolder)) chaptersMap.set(chapFolder, []);
+    chaptersMap.get(chapFolder).push(f);
+  });
+
+  if (!chaptersMap.size) {
+    logMsg('❌ لم أجد أي مجلدات فصول. تأكد من تنظيم المجلدات.', 'err');
+    text.textContent = 'فشل: لا توجد مجلدات';
+    return;
+  }
+
+  // ترتيب الفصول والصور
+  const chapters = [...chaptersMap.entries()].map(([folder, files]) => {
+    const numMatch = folder.match(/\d+/);
+    const number = numMatch ? parseInt(numMatch[0]) : 0;
+    files.sort((a, b) => {
+      const an = a.name.match(/\d+/g)?.join('') || a.name;
+      const bn = b.name.match(/\d+/g)?.join('') || b.name;
+      return String(an).localeCompare(String(bn), undefined, { numeric: true });
+    });
+    return { folder, number, title: folder, files };
+  }).sort((a, b) => a.number - b.number);
+
+  logMsg(`📚 تم التعرف على ${chapters.length} فصل`, 'ok');
+
+  let done = 0;
+  const total = chapters.length;
+  let successCount = 0;
+  let errorCount = 0;
+
+  for (const chap of chapters) {
+    try {
+      logMsg(`⏳ الفصل ${chap.number} (${chap.folder}) — ${chap.files.length} صورة…`, 'info');
+
+      const { data: ch, error: chErr } = await sb.from('chapters').insert({
+        work_id: workId,
+        number: chap.number,
+        title: chap.title,
+        kind: 'comic',
+        is_locked: defaultLock,
+        published: true
+      }).select().single();
+
+      if (chErr) throw new Error('فشل إنشاء الفصل: ' + chErr.message);
+
+      const paths = [];
+      for (let i = 0; i < chap.files.length; i++) {
+        const f = chap.files[i];
+        const ext = f.name.split('.').pop() || 'jpg';
+        const path = `${ch.id}/${String(i + 1).padStart(3, '0')}.${ext}`;
+        const r = await sb.storage.from('chapters').upload(path, f, { upsert: true });
+        if (r.error) throw new Error('فشل رفع صورة: ' + r.error.message);
+        paths.push(path);
+      }
+
+      await sb.from('chapters').update({ pages: paths }).eq('id', ch.id);
+
+      successCount++;
+      logMsg(`✅ الفصل ${chap.number} — تم (${paths.length} صورة)`, 'ok');
+    } catch (err) {
+      errorCount++;
+      logMsg(`❌ الفصل ${chap.number}: ${err.message}`, 'err');
+    }
+
+    done++;
+    const pct = Math.round((done / total) * 100);
+    fill.style.width = pct + '%';
+    text.textContent = `${done} / ${total} (${pct}%)`;
+  }
+
+  logMsg(`🎉 انتهى! النجاح: ${successCount} | الفشل: ${errorCount}`, successCount > 0 ? 'ok' : 'err');
+  text.textContent = `انتهى الرفع — نجح ${successCount} من ${total}`;
+  toast(`✅ تم رفع ${successCount} فصل بنجاح`);
+
+  setTimeout(() => route(), 2000);
+}
+
+// ============ 15. الراوتر ============
 async function route() {
   const h = location.hash.replace(/^#\/?/, '').split('/');
   const page = h[0] || 'home';
@@ -1047,6 +1180,7 @@ async function route() {
 
     app.innerHTML = html;
     if (page === 'comics' || page === 'novels') drawBrowse();
+    if (page === 'admin') initBulkUploader();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch (e) {
     console.error(e);
@@ -1056,5 +1190,5 @@ async function route() {
 
 window.addEventListener('hashchange', route);
 
-// ============ 15. بدء التطبيق ============
+// ============ 16. البدء ============
 boot();
