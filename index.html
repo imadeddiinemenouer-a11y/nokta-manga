@@ -19,6 +19,9 @@
 <button class="menu-btn" onclick="toggleMenu()" aria-label="القائمة">☰</button>
 <a class="logo" href="#/">📖 نُقطة<span>مانجا</span></a>
 <div class="hacts">
+<button class="icon-btn" id="notifBtn" onclick="go('notifications')" style="display:none;position:relative" aria-label="الإشعارات">
+🔔<span class="notif-dot" id="notifDot" style="display:none"></span>
+</button>
 <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" aria-label="الوضع الليلي">🌙</button>
 <button class="icon-btn" id="adminBtn" style="display:none;" onclick="go('admin')" aria-label="لوحة الإدارة">⚙️</button>
 <button class="icon-btn" id="authBtn" onclick="go('auth')" aria-label="الحساب">👤</button>
@@ -37,6 +40,8 @@
 <a href="#/" data-r="home" onclick="toggleMenu()">🏠 الرئيسية</a>
 <a href="#/comics" data-r="comics" onclick="toggleMenu()">🎨 قائمة الأعمال</a>
 <a href="#/novels" data-r="novels" onclick="toggleMenu()">📖 الروايات</a>
+<a href="#/library" data-r="library" onclick="toggleMenu()">📚 مكتبتي</a>
+<a href="#/notifications" data-r="notifications" onclick="toggleMenu()">🔔 الإشعارات</a>
 <a href="#/teams" data-r="teams" onclick="toggleMenu()">🛡️ الفرق</a>
 <a href="#/points" data-r="points" onclick="toggleMenu()">👑 النقاط</a>
 <a href="#/join" data-r="join" onclick="toggleMenu()">🤝 انضم كمساعد</a>
