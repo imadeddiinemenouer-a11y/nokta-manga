@@ -1,12 +1,19 @@
 /* ============================================================
-   نُقطة مانجا — التطبيق النهائي الكامل
+   ALPHA COMIX — التطبيق الاحترافي الكامل
    ============================================================ */
 
+// ============ 1. الإعداد والتهيئة ============
 const C = window.NOKTA_CONFIG || {};
 const hasConfig = C.supabaseUrl && C.supabasePublishableKey && !C.supabaseUrl.includes('YOUR_') && !C.supabasePublishableKey.includes('YOUR_');
 const sb = hasConfig ? supabase.createClient(C.supabaseUrl, C.supabasePublishableKey) : null;
 const app = document.querySelector('#app');
-let session = null, profile = null, browseWorks = [], libraryTab = 'favorites', readerMode = 'webtoon';
+
+let session = null;
+let profile = null;
+let browseWorks = [];
+let libraryTab = 'favorites';
+let readerWide = false;
+let browseSort = 'new';
 let fState = { types: [], genres: [], ages: [], status: [] };
 
 const $ = s => document.querySelector(s);
@@ -18,14 +25,29 @@ const STATIC_AGES = ['13+', '16+', '18+'];
 const STATIC_STATUS = ['مستمرة', 'متوقفة', 'منتهية'];
 const STATIC_GENRES = ['أكشن','فانتازيا','رومانسية','غموض','نظام','دراما','مغامرة','مدرسي','شونين','قوى خاصة','ناجٍ','مصاصين','سحر','مملكة','تاريخي','ارتقاء','رياضة','خيال','حياة يومية','جوسي','فنون قتالية','سينين','شوجو','إيسيكاي','ميكا','رعب','نفسي','عسكري','موسيقي'];
 
-/* ===== أدوات ===== */
+const ICON_SUN = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
+const ICON_MOON = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>';
+
+// ============ 2. الأدوات العامة ============
 function toast(m) {
-  const t = $('#toast'); if (!t) return;
-  t.textContent = m; t.classList.add('show');
+  const t = $('#toast');
+  if (!t) return;
+  t.textContent = m;
+  t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2600);
 }
-function go(r, id) { location.hash = id === undefined ? '#/' + r : '#/' + r + '/' + id; }
-function toggleMenu() { const s = $('#sidebar'), o = $('#overlay'); if (s) s.classList.toggle('show'); if (o) o.classList.toggle('show'); }
+
+function go(r, id) {
+  location.hash = id === undefined ? '#/' + r : '#/' + r + '/' + id;
+}
+
+function toggleMenu() {
+  const s = $('#sidebar');
+  const o = $('#overlay');
+  if (s) s.classList.toggle('show');
+  if (o) o.classList.toggle('show');
+}
+
 function timeAgo(d) {
   if (!d) return '—';
   const df = (Date.now() - new Date(d).getTime()) / 1000;
@@ -36,17 +58,21 @@ function timeAgo(d) {
   return new Date(d).toLocaleDateString('ar');
 }
 
-/* ===== الوضع الليلي ===== */
 function theme() {
   const l = localStorage.noktaTheme === 'light';
   if (l) document.documentElement.setAttribute('data-theme', 'light');
   else document.documentElement.removeAttribute('data-theme');
-  const b = $('#themeBtn'); if (b) b.textContent = l ? '🌙' : '☀️';
+  const b = $('#themeBtn');
+  if (b) b.innerHTML = l ? ICON_MOON : ICON_SUN;
 }
-function toggleTheme() { localStorage.noktaTheme = localStorage.noktaTheme === 'light' ? 'dark' : 'light'; theme(); }
+
+function toggleTheme() {
+  localStorage.noktaTheme = localStorage.noktaTheme === 'light' ? 'dark' : 'light';
+  theme();
+}
 theme();
 
-/* ===== التهيئة ===== */
+// ============ 3. التهيئة والمصادقة ============
 async function boot() {
   if (!sb) {
     app.innerHTML = `<div class="panel"><h2>⚙️ إعداد Supabase مطلوب</h2><p style="color:var(--muted);line-height:2;margin-top:10px">انسخ <b>config.example.js</b> إلى <b>config.js</b> واملأ القيم.</p></div>`;
@@ -55,7 +81,12 @@ async function boot() {
   const r = await sb.auth.getSession();
   session = r.data.session;
   await loadProfile();
-  sb.auth.onAuthStateChange(async (_, s) => { session = s; await loadProfile(); refreshHeader(); route(); });
+  sb.auth.onAuthStateChange(async (_, s) => {
+    session = s;
+    await loadProfile();
+    refreshHeader();
+    route();
+  });
   refreshHeader();
   route();
 }
@@ -70,13 +101,24 @@ async function loadProfile() {
 
 function refreshHeader() {
   if (!sb) return;
-  const a = $('#adminBtn'); if (a) a.style.display = profile?.role === 'admin' ? 'flex' : 'none';
-  const n = $('#notifBtn'); if (n) n.style.display = session ? 'flex' : 'none';
+  const a = $('#adminBtn');
+  if (a) a.style.display = profile?.role === 'admin' ? 'flex' : 'none';
+  const n = $('#notifBtn');
+  if (n) n.style.display = session ? 'flex' : 'none';
   const ab = $('#authBtn');
-  if (ab) { ab.style.background = session ? 'var(--accent)' : ''; ab.style.color = session ? '#1a1200' : ''; }
+  if (ab) {
+    ab.style.background = session ? 'var(--grad)' : '';
+    ab.style.color = session ? '#fff' : '';
+    ab.style.borderColor = session ? 'transparent' : '';
+  }
   const um = $('#userMini');
-  if (um) um.innerHTML = session ? `<span>👤</span><b>${esc(profile?.username || session.user.email)}</b>` : `<span>👤</span><span>غير مسجل</span>`;
-  if (session) { loadBalance(); checkNotifications(); }
+  if (um) um.innerHTML = session
+    ? `<span>👤</span><b>${esc(profile?.username || session.user.email)}</b>`
+    : `<span>👤</span><span>غير مسجل</span>`;
+  if (session) {
+    loadBalance();
+    checkNotifications();
+  }
 }
 
 async function loadBalance() {
@@ -86,12 +128,38 @@ async function loadBalance() {
 
 async function checkNotifications() {
   if (!session) return;
-  const { count } = await sb.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id).eq('is_read', false);
+  const { count } = await sb.from('notifications')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', session.user.id)
+    .eq('is_read', false);
   const d = $('#notifDot');
   if (d) d.style.display = count > 0 ? 'block' : 'none';
 }
 
-/* ===== جلب الأعمال ===== */
+async function signIn() {
+  const { error } = await sb.auth.signInWithPassword({
+    email: $('#email').value.trim(),
+    password: $('#pass').value
+  });
+  if (error) toast(error.message);
+  else { toast('تم تسجيل الدخول'); route(); }
+}
+
+async function signUp() {
+  const email = $('#email').value.trim();
+  const password = $('#pass').value;
+  if (password.length < 8) return toast('كلمة المرور 8 أحرف على الأقل');
+  const { error } = await sb.auth.signUp({ email, password });
+  toast(error ? error.message : 'تم إنشاء الحساب');
+}
+
+async function signOut() {
+  await sb.auth.signOut();
+  toast('تم تسجيل الخروج');
+  route();
+}
+
+// ============ 4. جلب البيانات ============
 async function fetchWorks(kind) {
   let q = sb.from('works').select('*').eq('published', true).order('updated_at', { ascending: false });
   if (kind) q = q.eq('kind', kind);
@@ -107,7 +175,11 @@ async function fetchFavorites() {
 
 async function isFavorite(workId) {
   if (!session) return false;
-  const { data } = await sb.from('favorites').select('*').eq('user_id', session.user.id).eq('work_id', workId).maybeSingle();
+  const { data } = await sb.from('favorites')
+    .select('*')
+    .eq('user_id', session.user.id)
+    .eq('work_id', workId)
+    .maybeSingle();
   return !!data;
 }
 
@@ -121,19 +193,14 @@ async function fetchLatestChapters(workId, limit = 4) {
   return data || [];
 }
 
-async function countChapters(workId) {
-  const { count } = await sb.from('chapters').select('*', { count: 'exact', head: true }).eq('work_id', workId).eq('published', true);
-  return count || 0;
-}
-
-/* ===== بطاقات ===== */
+// ============ 5. البطاقات ============
 function cardHTML(w, isFav) {
   return `<div class="card" onclick="go('work','${w.id}')">
     <div class="cover" style="background:linear-gradient(140deg,${esc(w.grad_a||'#1a237e')},${esc(w.grad_b||'#4a148c')})">
-      ${w.cover_url?`<img src="${esc(w.cover_url)}" alt="${esc(w.title)}" loading="lazy">`:esc(w.emoji||'📖')}
+      ${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="${esc(w.title)}" loading="lazy">` : esc(w.emoji||'📖')}
       <span class="age">${esc(w.age_rating||'13+')}</span>
       <span class="type">${esc(w.type)}</span>
-      ${isFav?'<span class="fav-badge">❤️</span>':''}
+      ${isFav ? '<span class="fav-badge">❤️</span>' : ''}
     </div>
     <div class="cinfo">
       <h3>${esc(w.title)}</h3>
@@ -146,7 +213,7 @@ function popularItemHTML(w, i) {
   return `<div class="popular-item" onclick="go('work','${w.id}')">
     <div class="popular-num">${i+1}</div>
     <div class="popular-cover" style="background:linear-gradient(140deg,${esc(w.grad_a||'#1a237e')},${esc(w.grad_b||'#4a148c')})">
-      ${w.cover_url?`<img src="${esc(w.cover_url)}" alt="" loading="lazy">`:esc(w.emoji||'📖')}
+      ${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="" loading="lazy">` : esc(w.emoji||'📖')}
     </div>
     <div class="popular-info">
       <h3>${esc(w.title)}</h3>
@@ -158,70 +225,71 @@ function popularItemHTML(w, i) {
 async function releaseCardHTML(w) {
   const chapters = await fetchLatestChapters(w.id, 4);
   const sc = w.status === 'متوقفة' ? 'paused' : w.status === 'منتهية' ? 'completed' : '';
-
   const chaptersHTML = chapters.length
     ? chapters.map(c => `<div class="chapter-mini" onclick="event.stopPropagation();go('read','${c.id}')">
         <span>الفصل ${c.number}${c.title ? `: ${esc(c.title)}` : ''}</span>
         <span class="time">${timeAgo(c.created_at)}</span>
       </div>`).join('')
     : '<div style="text-align:center;color:var(--muted);padding:14px;font-size:.75rem">لا توجد فصول بعد</div>';
-
   return `<div class="release-card">
     <div class="release-info">
-      <h3 onclick="go('work','${w.id}')" style="cursor:pointer">${esc(w.title)}</h3>
+      <h3 onclick="go('work','${w.id}')">${esc(w.title)}</h3>
       <div class="release-status ${sc}">${esc(w.status || 'مستمرة')} • ${chapters.length} فصل</div>
       <div class="chapters-mini">${chaptersHTML}</div>
     </div>
     <div class="release-cover" style="background:linear-gradient(140deg,${esc(w.grad_a||'#1a237e')},${esc(w.grad_b||'#4a148c')})" onclick="go('work','${w.id}')">
-      ${w.cover_url?`<img src="${esc(w.cover_url)}" alt="${esc(w.title)}" loading="lazy">`:esc(w.emoji||'📖')}
+      ${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="${esc(w.title)}" loading="lazy">` : esc(w.emoji||'📖')}
       <span class="type-badge">${esc(w.type)}</span>
     </div>
   </div>`;
 }
 
-/* ===== الصفحة الرئيسية ===== */
+// ============ 6. الصفحات ============
 async function vHome() {
   const works = await fetchWorks();
   const favs = await fetchFavorites();
   const top = [...works].sort((a,b)=>(b.rating||0)-(a.rating||0)).slice(0,5);
   const latest = works.slice(0,4);
   const today = works.slice(0,6);
-
   const releasesHTML = (await Promise.all(latest.map(releaseCardHTML))).join('');
 
   return `
   <div class="search-wrap">
     <div class="search-box" onclick="go('search','')">
-      <span class="search-icon">🔍</span>
+      <span class="search-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></span>
       <input placeholder="ابحث عن مانهوا أو مانجا..." readonly>
     </div>
   </div>
-
   <div class="hero">
-    <h1>الأعمال <span>المميزة</span></h1>
-    <p>استكشف مجموعة واسعة من الأعمال المميزة والحصرية على منصتنا</p>
-    <button class="btn" onclick="go('comics')">تصفح الكل ←</button>
+    <div class="hero-inner">
+      <div class="hero-badge">NEW RELEASES</div>
+      <h1>اقرأ أحدث <span>المانهوا والمانجا</span> بالعربية</h1>
+      <p>منصة احترافية للفصول والفرق والقراءة، مع حسابات وصلاحيات ونظام نقاط محفوظ في الخادم.</p>
+      <div class="hero-actions">
+        <button class="btn" onclick="go('comics')">تصفح الكل ←</button>
+        <button class="btn ghost" onclick="go('novels')">الروايات</button>
+      </div>
+    </div>
   </div>
-
   <div class="sec-title"><span class="line"></span>🔥 الأكثر شعبية</div>
-  <div class="popular-list">${top.map((w,i)=>popularItemHTML(w,i)).join('') || '<p style="text-align:center;color:var(--muted);padding:30px">لا توجد أعمال بعد.</p>'}</div>
-
+  <div class="popular-list">${top.map((w,i)=>popularItemHTML(w,i)).join('') || '<div class="empty"><span class="empty-icon">📚</span><p>لا توجد أعمال بعد</p></div>'}</div>
   <div class="sec-title"><span class="line"></span>📖 أحدث الإصدارات</div>
-  <div class="releases-list">${releasesHTML || '<p style="text-align:center;color:var(--muted);padding:30px">لا توجد إصدارات.</p>'}</div>
-
+  <div class="releases-list">${releasesHTML || '<div class="empty"><span class="empty-icon">📖</span><p>لا توجد إصدارات</p></div>'}</div>
   <div class="sec-title"><span class="line"></span>⚡ شائع اليوم</div>
-  <div class="grid">${today.map(w=>cardHTML(w,favs.includes(w.id))).join('')}</div>
-  `;
+  <div class="grid">${today.map(w=>cardHTML(w,favs.includes(w.id))).join('')}</div>`;
 }
 
-/* ===== صفحة التصفح ===== */
 async function vBrowse(kind) {
   const works = await fetchWorks(kind);
   browseWorks = works;
   fState = { types: [], genres: [], ages: [], status: [] };
+  browseSort = 'new';
 
   return `<div class="sec-title"><span class="line"></span>${kind==='comic'?'🎨 جميع الأعمال':'📖 الروايات'}</div>
-  <div class="search-wrap"><div class="search-box" onclick="go('search','')"><span class="search-icon">🔍</span><input placeholder="ابحث..." readonly></div></div>
+  <div class="search-wrap"><div class="search-box" onclick="go('search','')">
+    <span class="search-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></span>
+    <input placeholder="ابحث..." readonly>
+  </div></div>
   <div class="filters-row">
     <div class="filter-wrap">
       <button class="filter-select" onclick="toggleDropdown('ddType')">
@@ -245,19 +313,37 @@ async function vBrowse(kind) {
     </div>
   </div>
   <div class="active-chips" id="activeChips"></div>
-  <p class="result-count" id="resultCount"></p>
+  <div class="sort-bar">
+    <p class="result-count" id="resultCount" style="margin:0"></p>
+    <button class="sort-toggle" id="sortBtn" onclick="toggleSort()">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+      <span id="sortLabel">الأحدث أولاً</span>
+    </button>
+  </div>
   <div class="grid" id="browseGrid"></div>`;
 }
 
+// ============ 7. الفلاتر ============
+function toggleSort() {
+  browseSort = browseSort === 'new' ? 'old' : browseSort === 'old' ? 'rating' : 'new';
+  const lbl = document.getElementById('sortLabel');
+  if (lbl) lbl.textContent = browseSort === 'new' ? 'الأحدث أولاً' : browseSort === 'old' ? 'الأقدم أولاً' : 'الأعلى تقييماً';
+  drawBrowse();
+}
+
 function toggleDropdown(id) {
-  const t = document.getElementById(id); if (!t) return;
+  const t = document.getElementById(id);
+  if (!t) return;
   const open = t.classList.contains('show');
   $$('.dropdown').forEach(d => d.classList.remove('show'));
   $$('.filter-select').forEach(b => b.classList.remove('active'));
   if (!open) {
     t.classList.add('show');
     const w = t.closest('.filter-wrap');
-    if (w) { const b = w.querySelector('.filter-select'); if (b) b.classList.add('active'); }
+    if (w) {
+      const b = w.querySelector('.filter-select');
+      if (b) b.classList.add('active');
+    }
     buildDropdownContent(id);
   }
 }
@@ -270,7 +356,8 @@ document.addEventListener('click', e => {
 });
 
 function buildDropdownContent(id) {
-  const el = document.getElementById(id); if (!el) return;
+  const el = document.getElementById(id);
+  if (!el) return;
   if (id === 'ddType') {
     const fromDB = [...new Set(browseWorks.map(w => w.type).filter(Boolean))];
     const all = [...new Set([...STATIC_TYPES, ...fromDB])];
@@ -298,20 +385,28 @@ function closeDropdowns() {
 function toggleFilter(k, v) {
   const a = fState[k];
   const i = a.indexOf(v);
-  if (i >= 0) a.splice(i, 1); else a.push(v);
+  if (i >= 0) a.splice(i, 1);
+  else a.push(v);
   drawBrowse();
 }
 
-function clearFilter(k) { fState[k] = []; drawBrowse(); }
+function clearFilter(k) {
+  fState[k] = [];
+  drawBrowse();
+}
 
 function drawBrowse() {
-  const list = browseWorks.filter(w => {
+  let list = browseWorks.filter(w => {
     if (fState.types.length && !fState.types.includes(w.type)) return false;
     if (fState.ages.length && !fState.ages.includes(w.age_rating)) return false;
     if (fState.status.length && !fState.status.includes(w.status)) return false;
     if (fState.genres.length && !fState.genres.some(g => (w.genres||[]).includes(g))) return false;
     return true;
   });
+  if (browseSort === 'new') list.sort((a,b) => new Date(b.updated_at||0) - new Date(a.updated_at||0));
+  else if (browseSort === 'old') list.sort((a,b) => new Date(a.updated_at||0) - new Date(b.updated_at||0));
+  else if (browseSort === 'rating') list.sort((a,b) => (b.rating||0) - (a.rating||0));
+
   const set = (id, txt) => { const e = document.getElementById(id); if (e) e.textContent = txt; };
   set('vType', fState.types.length ? fState.types.join('، ') : 'الكل');
   set('vAge', fState.ages.length ? fState.ages.join('، ') : 'الكل');
@@ -319,16 +414,23 @@ function drawBrowse() {
   set('vGen', fState.genres.length ? fState.genres.join('، ') : 'الكل');
   const chips = document.getElementById('activeChips');
   if (chips) {
-    const all = [...fState.types.map(v=>({k:'types',v})),...fState.ages.map(v=>({k:'ages',v})),...fState.status.map(v=>({k:'status',v})),...fState.genres.map(v=>({k:'genres',v}))];
+    const all = [
+      ...fState.types.map(v=>({k:'types',v})),
+      ...fState.ages.map(v=>({k:'ages',v})),
+      ...fState.status.map(v=>({k:'status',v})),
+      ...fState.genres.map(v=>({k:'genres',v}))
+    ];
     chips.innerHTML = all.map(x => `<span class="chip-x"><b>${esc(x.v)}</b><button onclick="toggleFilter('${x.k}','${esc(x.v)}')">×</button></span>`).join('');
   }
   set('resultCount', `تم العثور على ${list.length} عمل`);
   const grid = document.getElementById('browseGrid');
-  if (grid) grid.innerHTML = list.length ? list.map(w => cardHTML(w, false)).join('') : '<p style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px">لا توجد نتائج.</p>';
+  if (grid) grid.innerHTML = list.length
+    ? list.map(w => cardHTML(w, false)).join('')
+    : '<div class="empty" style="grid-column:1/-1"><span class="empty-icon">🔍</span><p>لا توجد نتائج</p></div>';
   $$('.dropdown.show').forEach(d => buildDropdownContent(d.id));
 }
 
-/* ===== صفحة العمل ===== */
+// ============ 8. صفحة العمل ============
 async function vWork(id) {
   const { data: w } = await sb.from('works').select('*').eq('id', id).maybeSingle();
   if (!w) return '<div class="panel">العمل غير موجود.</div>';
@@ -338,15 +440,16 @@ async function vWork(id) {
   const isFav = await isFavorite(id);
   const { data: progress } = session ? await sb.rpc('get_my_progress', { p_work_id: id }) : { data: null };
 
-  const avg = ratingData?.average || 0, cnt = ratingData?.count || 0, myScore = ratingData?.my_score || 0;
-  const sc = w.status==='متوقفة'?'paused':w.status==='منتهية'?'completed':'';
-
+  const avg = ratingData?.average || 0;
+  const cnt = ratingData?.count || 0;
+  const myScore = ratingData?.my_score || 0;
+  const sc = w.status === 'متوقفة' ? 'paused' : w.status === 'منتهية' ? 'completed' : '';
   const starsHTML = [1,2,3,4,5].map(i => `<span class="star ${i<=myScore?'active':''}" onclick="rateWork('${id}',${i})">★</span>`).join('');
 
   const commentsHTML = (comments||[]).map(c => `
     <div class="comment-item">
       <div class="comment-head">
-        <div class="comment-avatar">${esc(c.username?.[0]||'?')}</div>
+        <div class="comment-avatar">${esc((c.username||'?')[0])}</div>
         <span class="comment-user">${esc(c.username||'مجهول')}</span>
         <span class="comment-time">${timeAgo(c.created_at)}</span>
       </div>
@@ -356,11 +459,13 @@ async function vWork(id) {
       </div>
     </div>`).join('') || '<p style="text-align:center;color:var(--muted);padding:20px;font-size:.8rem">لا توجد تعليقات بعد.</p>';
 
-  const progressHTML = progress?.has_progress && session ? `<button class="btn ghost" onclick="go('read','${progress.chapter_id}')">📖 متابعة القراءة</button>` : '';
+  const progressHTML = progress?.has_progress && session
+    ? `<button class="btn ghost" onclick="go('read','${progress.chapter_id}')">📖 متابعة القراءة</button>`
+    : '';
 
   return `<div class="work-head">
     <div class="work-cover" style="background:linear-gradient(140deg,${esc(w.grad_a||'#1a237e')},${esc(w.grad_b||'#4a148c')})">
-      ${w.cover_url?`<img src="${esc(w.cover_url)}" alt="${esc(w.title)}">`:esc(w.emoji||'📖')}
+      ${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="${esc(w.title)}">` : esc(w.emoji||'📖')}
     </div>
     <div class="work-info">
       <h1>${esc(w.title)}</h1>
@@ -373,7 +478,7 @@ async function vWork(id) {
       <div class="rating-info">★ ${avg} (${cnt} تقييم)</div>
       <div class="rating-stars">${starsHTML}</div>
       <p class="work-syn">${esc(w.synopsis||'')}</p>
-      ${w.author?`<p class="work-author">✍️ الكاتب: <b>${esc(w.author)}</b></p>`:''}
+      ${w.author ? `<p class="work-author">✍️ الكاتب: <b>${esc(w.author)}</b></p>` : ''}
       <div class="work-actions">
         <button class="btn ${isFav?'fav-btn active':'ghost'}" onclick="toggleFavorite('${id}')">${isFav?'❤️ في المفضلة':'🤍 أضف للمفضلة'}</button>
         ${progressHTML}
@@ -386,9 +491,11 @@ async function vWork(id) {
     <div class="num">الفصل ${ch.number}</div>
     <div class="sub">${ch.is_locked?'🔒 مقفل':'🆓 مجاني'} ${esc(ch.title||'')}</div>
     <button class="btn sm ${ch.is_locked?'gold':'ghost'}" onclick="readChapter('${ch.id}')">${ch.is_locked?'فتح':'قراءة'}</button>
-  </div>`).join('') || '<p style="text-align:center;color:var(--muted);padding:30px">لا توجد فصول.</p>'}
+  </div>`).join('') || '<div class="empty"><span class="empty-icon">📑</span><p>لا توجد فصول بعد</p></div>'}
   <div class="sec-title"><span class="line"></span>💬 التعليقات (${(comments||[]).length})</div>
-  ${session ? `<div class="panel"><div class="field"><textarea id="commentInput" placeholder="اكتب تعليقاً..." style="min-height:80px"></textarea></div><button class="btn" onclick="postComment('${id}')">نشر التعليق</button></div>` : '<div class="notice">سجّل الدخول للتعليق.</div>'}
+  ${session
+    ? `<div class="panel"><div class="field"><textarea id="commentInput" placeholder="اكتب تعليقاً..." style="min-height:80px"></textarea></div><button class="btn" onclick="postComment('${id}')">نشر التعليق</button></div>`
+    : '<div class="notice">سجّل الدخول للتعليق.</div>'}
   <div id="commentsList">${commentsHTML}</div>`;
 }
 
@@ -413,7 +520,11 @@ async function postComment(workId) {
   const input = document.getElementById('commentInput');
   const content = input?.value.trim();
   if (!content) return toast('اكتب تعليقاً');
-  const { error } = await sb.from('comments').insert({ user_id: session.user.id, work_id: workId, content });
+  const { error } = await sb.from('comments').insert({
+    user_id: session.user.id,
+    work_id: workId,
+    content
+  });
   if (error) return toast(error.message);
   toast('✅ تم النشر');
   route();
@@ -421,9 +532,16 @@ async function postComment(workId) {
 
 async function likeComment(commentId) {
   if (!session) return go('auth');
-  const { data } = await sb.from('comment_likes').select('*').eq('user_id', session.user.id).eq('comment_id', commentId).maybeSingle();
-  if (data) await sb.from('comment_likes').delete().eq('user_id', session.user.id).eq('comment_id', commentId);
-  else await sb.from('comment_likes').insert({ user_id: session.user.id, comment_id: commentId });
+  const { data } = await sb.from('comment_likes')
+    .select('*')
+    .eq('user_id', session.user.id)
+    .eq('comment_id', commentId)
+    .maybeSingle();
+  if (data) {
+    await sb.from('comment_likes').delete().eq('user_id', session.user.id).eq('comment_id', commentId);
+  } else {
+    await sb.from('comment_likes').insert({ user_id: session.user.id, comment_id: commentId });
+  }
   route();
 }
 
@@ -434,18 +552,29 @@ async function readChapter(id) {
   go('read', id);
 }
 
-/* ===== القارئ ===== */
+// ============ 9. القارئ ============
 async function vReader(id) {
   const { data: ch, error } = await sb.rpc('get_chapter_for_reader', { p_chapter_id: id });
   if (error || !ch) return `<div class="error">${esc(error?.message||'الفصل غير متاح')}</div>`;
-
   if (session) await sb.rpc('save_progress', { p_work_id: ch.work_id, p_chapter_id: id, p_page: 1 });
+
+  const { data: allChs } = await sb.from('chapters')
+    .select('id, number, title')
+    .eq('work_id', ch.work_id)
+    .eq('published', true)
+    .order('number', { ascending: true });
+
+  const chapters = allChs || [];
+  const curIdx = chapters.findIndex(c => c.id === id);
+  const prevCh = curIdx > 0 ? chapters[curIdx - 1] : null;
+  const nextCh = curIdx < chapters.length - 1 ? chapters[curIdx + 1] : null;
 
   let body = '';
   if (ch.kind === 'novel') {
-    body = `<article class="novel-page"><h2>${esc(ch.title||'الفصل')}</h2>${(ch.content||'').split(/\n+/).map(p=>`<p>${esc(p)}</p>`).join('')}</article>`;
+    body = `<article class="novel-page"><h2>${esc(ch.title||'الفصل '+ch.number)}</h2>${(ch.content||'').split(/\n+/).map(p=>`<p>${esc(p)}</p>`).join('')}</article>`;
   } else {
-    const imgs = ch.pages || [], urls = [];
+    const imgs = ch.pages || [];
+    const urls = [];
     for (const p of imgs) {
       const r = await sb.storage.from('chapters').createSignedUrl(p, 3600);
       if (r.data?.signedUrl) urls.push(r.data.signedUrl);
@@ -453,33 +582,42 @@ async function vReader(id) {
     body = urls.map((u,i)=>`<img class="reader-image" src="${esc(u)}" alt="صفحة ${i+1}" loading="lazy">`).join('') || '<div class="panel">لا توجد صفحات.</div>';
   }
 
+  const isFav = await isFavorite(ch.work_id);
+  const themeIcon = localStorage.noktaTheme === 'light' ? ICON_MOON : ICON_SUN;
+
   return `<div class="reader-bar">
     <button class="btn sm ghost" onclick="go('work','${ch.work_id}')">→ رجوع</button>
     <div class="reader-title">${esc(ch.work_title)} — الفصل ${ch.number}</div>
-    <div class="reader-settings">
-      <select onchange="changeReaderMode(this.value)">
-        <option value="webtoon" ${readerMode==='webtoon'?'selected':''}>📜 ويبتون</option>
-        <option value="page" ${readerMode==='page'?'selected':''}>📄 صفحة</option>
-      </select>
+    <div class="reader-tools">
+      <button class="reader-tool-btn" onclick="toggleReaderWidth()" title="عرض أوسع" id="widthBtn">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16v16H4z"/><path d="M9 4v16M15 4v16"/></svg>
+      </button>
+      <button class="reader-tool-btn ${isFav?'is-fav':''}" onclick="toggleFavorite('${ch.work_id}')" title="المفضلة" style="${isFav?'color:var(--accent)':''}">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="${isFav?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+      </button>
+      <button class="reader-tool-btn" onclick="toggleTheme()" title="الوضع الليلي/النهاري">${themeIcon}</button>
     </div>
   </div>
-  <div class="reader-body ${readerMode==='webtoon'?'mode-webtoon':''}">${body}</div>
+  <div class="reader-body ${readerWide?'wide':''}" id="readerBody">${body}</div>
   <div class="reader-nav">
-    <button onclick="go('work','${ch.work_id}')">← الفصول</button>
-    <button onclick="window.scrollTo({top:0,behavior:'smooth'})">↑ أعلى</button>
+    <button onclick="${prevCh ? `go('read','${prevCh.id}')` : 'return false'}" ${!prevCh ? 'disabled style="opacity:.4;cursor:not-allowed"' : ''}>← السابق ${prevCh ? `(${prevCh.number})` : ''}</button>
+    <button onclick="go('work','${ch.work_id}')" style="flex:0.7">📑 كل الفصول</button>
+    <button onclick="${nextCh ? `go('read','${nextCh.id}')` : 'return false'}" ${!nextCh ? 'disabled style="opacity:.4;cursor:not-allowed"' : ''}>التالي ${nextCh ? `(${nextCh.number})` : ''} →</button>
   </div>`;
 }
 
-function changeReaderMode(mode) { readerMode = mode; route(); }
+function toggleReaderWidth() {
+  readerWide = !readerWide;
+  const b = document.getElementById('readerBody');
+  if (b) b.classList.toggle('wide', readerWide);
+}
 
-/* ===== المكتبة ===== */
+// ============ 10. المكتبة والإشعارات ============
 async function vLibrary() {
-  if (!session) return `<div class="panel" style="text-align:center;padding:60px 20px"><h2>📚 مكتبتي</h2><p style="margin:14px 0;color:var(--muted)">سجّل الدخول لعرض مكتبتك</p><button class="btn" onclick="go('auth')">تسجيل الدخول</button></div>`;
+  if (!session) return `<div class="empty" style="padding:80px 20px"><span class="empty-icon">📚</span><p>سجّل الدخول لعرض مكتبتك</p><button class="btn" style="margin-top:20px" onclick="go('auth')">تسجيل الدخول</button></div>`;
   const { data: favs } = await sb.from('favorites').select('work_id, created_at, works(*)').eq('user_id', session.user.id).order('created_at', { ascending: false });
   const { data: progressList } = await sb.from('reading_progress').select('work_id, updated_at, works(*), chapters(number)').eq('user_id', session.user.id).order('updated_at', { ascending: false });
-
   const favHTML = (favs||[]).map(f => f.works ? cardHTML(f.works, true) : '').join('');
-
   const progHTML = (progressList||[]).map(p => {
     if (!p.works) return '';
     return `<div class="release-card">
@@ -488,46 +626,47 @@ async function vLibrary() {
         <div class="release-status">آخر قراءة: الفصل ${p.chapters?.number||'?'}</div>
         <div class="chapters-mini"><div class="chapter-mini" onclick="go('work','${p.work_id}')"><span>📖 متابعة القراءة</span><span class="time">${timeAgo(p.updated_at)}</span></div></div>
       </div>
-      <div class="release-cover" onclick="go('work','${p.work_id}')">${p.works.cover_url?`<img src="${esc(p.works.cover_url)}" alt="">`:'📖'}</div>
+      <div class="release-cover" onclick="go('work','${p.work_id}')">${p.works.cover_url ? `<img src="${esc(p.works.cover_url)}" alt="">` : '📖'}</div>
     </div>`;
   }).join('');
-
   return `<div class="sec-title"><span class="line"></span>📚 مكتبتي</div>
   <div class="tabs">
     <button class="tab ${libraryTab==='favorites'?'on':''}" onclick="libraryTab='favorites';route()">❤️ المفضلة (${(favs||[]).length})</button>
     <button class="tab ${libraryTab==='progress'?'on':''}" onclick="libraryTab='progress';route()">📖 سجل القراءة (${(progressList||[]).length})</button>
   </div>
-  ${libraryTab==='favorites' ? (favHTML ? `<div class="grid">${favHTML}</div>` : '<div class="empty"><div class="empty-icon">🤍</div><p>لا توجد أعمال في المفضلة</p></div>') : (progHTML || '<div class="empty"><div class="empty-icon">📖</div><p>لا يوجد سجل قراءة</p></div>')}`;
+  ${libraryTab==='favorites'
+    ? (favHTML ? `<div class="grid">${favHTML}</div>` : '<div class="empty"><span class="empty-icon">🤍</span><p>لا توجد أعمال في المفضلة</p></div>')
+    : (progHTML || '<div class="empty"><span class="empty-icon">📖</span><p>لا يوجد سجل قراءة</p></div>')}`;
 }
 
-/* ===== الإشعارات ===== */
 async function vNotifications() {
-  if (!session) return `<div class="panel" style="text-align:center;padding:60px 20px"><h2>🔔 الإشعارات</h2><p style="margin:14px 0;color:var(--muted)">سجّل الدخول لعرض الإشعارات</p><button class="btn" onclick="go('auth')">تسجيل الدخول</button></div>`;
+  if (!session) return `<div class="empty" style="padding:80px 20px"><span class="empty-icon">🔔</span><p>سجّل الدخول لعرض الإشعارات</p><button class="btn" style="margin-top:20px" onclick="go('auth')">تسجيل الدخول</button></div>`;
   const { data } = await sb.from('notifications').select('*, works(title), chapters(number)').eq('user_id', session.user.id).order('created_at', { ascending: false }).limit(50);
   await sb.from('notifications').update({ is_read: true }).eq('user_id', session.user.id).eq('is_read', false);
   checkNotifications();
-
-  const html = (data||[]).map(n => `<div class="notif-item ${n.is_read?'':'unread'}" onclick="${n.work_id?`go('work','${n.work_id}')`:''}">
+  const html = (data||[]).map(n => `<div class="notif-item ${n.is_read?'':'unread'}" onclick="${n.work_id ? `go('work','${n.work_id}')` : ''}">
     <div class="notif-icon">🔔</div>
     <div class="notif-content">
-      <p>${esc(n.message||`تم نشر فصل جديد${n.chapters?.number?` (${n.chapters.number})`:''} من ${n.works?.title||''}`)}</p>
+      <p>${esc(n.message || `تم نشر فصل جديد${n.chapters?.number?` (${n.chapters.number})`:''} من ${n.works?.title||''}`)}</p>
       <time>${timeAgo(n.created_at)}</time>
     </div>
   </div>`).join('');
-
   return `<div class="sec-title"><span class="line"></span>🔔 الإشعارات</div>
-  ${html || '<div class="empty"><div class="empty-icon">🔕</div><p>لا توجد إشعارات</p></div>'}`;
+  ${html || '<div class="empty"><span class="empty-icon">🔕</span><p>لا توجد إشعارات</p></div>'}`;
 }
 
-/* ===== الفرق ===== */
+// ============ 11. الفرق والانضمام ============
 async function vTeams() {
   const { data } = await sb.from('teams').select('*').eq('published', true).order('name');
   return `<div class="sec-title"><span class="line"></span>🛡️ فرق الترجمة</div>
   <div class="notice">يمكن لكل فريق إدارة أعماله وفصوله.</div>
-  <div class="grid2">${(data||[]).map(t=>`<div class="team-card"><h3>${esc(t.name)}</h3><p style="color:var(--muted);line-height:1.8;font-size:.85rem">${esc(t.description||'')}</p>${t.support_wallet?`<div class="wallet-box">${esc(t.support_wallet)}</div><button class="btn sm" onclick="copyTxt('${esc(t.support_wallet)}')">نسخ</button>`:''}</div>`).join('') || '<div class="empty"><div class="empty-icon">🛡️</div><p>لا توجد فرق بعد</p></div>'}</div>`;
+  <div class="grid2">${(data||[]).map(t=>`<div class="team-card">
+    <h3>${esc(t.name)}</h3>
+    <p style="color:var(--muted);line-height:1.8;font-size:.85rem">${esc(t.description||'')}</p>
+    ${t.support_wallet ? `<div class="wallet-box">${esc(t.support_wallet)}</div><button class="btn sm" onclick="copyTxt('${esc(t.support_wallet)}')">نسخ</button>` : ''}
+  </div>`).join('') || '<div class="empty" style="grid-column:1/-1"><span class="empty-icon">🛡️</span><p>لا توجد فرق بعد</p></div>'}</div>`;
 }
 
-/* ===== انضم ===== */
 async function vJoin() {
   return `<div class="sec-title"><span class="line"></span>🤝 انضم كمساعد</div>
   <div class="notice">أرسل طلبك؛ سيظهر للمشرفين في لوحة الإدارة.</div>
@@ -543,51 +682,44 @@ async function vJoin() {
 
 async function submitJoin() {
   if (!session) return go('auth');
-  const p = { name:$('#jName').value.trim(), contact:$('#jContact').value.trim(), role:$('#jRole').value, langs:$('#jLangs').value.trim(), bio:$('#jBio').value.trim() };
+  const p = {
+    name: $('#jName').value.trim(),
+    contact: $('#jContact').value.trim(),
+    role: $('#jRole').value,
+    langs: $('#jLangs').value.trim(),
+    bio: $('#jBio').value.trim()
+  };
   if (!p.name || !p.contact) return toast('أكمل الحقول');
   const { error } = await sb.from('join_requests').insert({ user_id: session.user.id, ...p });
-  toast(error?error.message:'✅ تم الإرسال');
+  toast(error ? error.message : '✅ تم الإرسال');
   if (!error) route();
 }
 
-/* ===== المصادقة ===== */
+// ============ 12. المصادقة والنقاط والبحث ============
 async function vAuth() {
   return `<div class="sec-title"><span class="line"></span>🔐 حسابك</div>
   <div class="panel" style="max-width:420px;margin:auto">
-    ${session ? `<p style="text-align:center;margin-bottom:16px">مسجل الدخول: <b>${esc(profile?.username||session.user.email)}</b></p>
-      <button class="btn danger" style="width:100%" onclick="signOut()">تسجيل الخروج</button>` : `
-      <div class="field"><label>البريد الإلكتروني</label><input id="email" type="email" placeholder="username@domain.com"></div>
-      <div class="field"><label>كلمة المرور</label><input id="pass" type="password" placeholder="••••••••"></div>
-      <button class="btn gold" style="width:100%;margin-bottom:10px" onclick="signIn()">تسجيل الدخول</button>
-      <div style="text-align:center;font-size:.8rem">
-        <span style="color:var(--muted)">ليس لديك حساب؟ </span>
-        <a onclick="signUp()" style="color:var(--accent);font-weight:800;cursor:pointer">إنشاء حساب جديد</a>
-      </div>`}
+    ${session
+      ? `<p style="text-align:center;margin-bottom:16px">مسجل الدخول: <b>${esc(profile?.username||session.user.email)}</b></p>
+        <button class="btn danger" style="width:100%" onclick="signOut()">تسجيل الخروج</button>`
+      : `<div class="field"><label>البريد الإلكتروني</label><input id="email" type="email" placeholder="username@domain.com"></div>
+        <div class="field"><label>كلمة المرور</label><input id="pass" type="password" placeholder="••••••••"></div>
+        <button class="btn" style="width:100%;margin-bottom:10px" onclick="signIn()">تسجيل الدخول</button>
+        <div style="text-align:center;font-size:.8rem">
+          <span style="color:var(--muted)">ليس لديك حساب؟ </span>
+          <a onclick="signUp()" style="color:var(--accent);font-weight:800;cursor:pointer">إنشاء حساب جديد</a>
+        </div>`}
   </div>`;
 }
 
-async function signIn() {
-  const { error } = await sb.auth.signInWithPassword({ email:$('#email').value.trim(), password:$('#pass').value });
-  if (error) toast(error.message); else { toast('تم تسجيل الدخول'); route(); }
-}
-async function signUp() {
-  const email=$('#email').value.trim(), password=$('#pass').value;
-  if (password.length<8) return toast('كلمة المرور 8 أحرف على الأقل');
-  const { error } = await sb.auth.signUp({ email, password });
-  toast(error?error.message:'تم إنشاء الحساب');
-}
-async function signOut() { await sb.auth.signOut(); toast('تم تسجيل الخروج'); route(); }
-
-/* ===== النقاط ===== */
 async function vPoints() {
-  if (!session) return `<div class="panel" style="text-align:center;padding:60px 20px"><h2>👑 النقاط</h2><p style="margin:14px 0;color:var(--muted)">سجّل الدخول لإدارة رصيدك</p><button class="btn" onclick="go('auth')">تسجيل الدخول</button></div>`;
+  if (!session) return `<div class="empty" style="padding:80px 20px"><span class="empty-icon">👑</span><p>سجّل الدخول لإدارة رصيدك</p><button class="btn" style="margin-top:20px" onclick="go('auth')">تسجيل الدخول</button></div>`;
   const { data } = await sb.rpc('get_my_balance');
   const balance = data?.balance || 0;
   const { data: packs } = await sb.from('point_packs').select('*').eq('active', true).order('sort_order');
   return `<div class="sec-title"><span class="line"></span>👑 رصيدك: ${balance} نقطة</div>
   <div class="notice">شراء النقاط هنا ينشئ طلب دفع. لن تتم إضافة النقاط حتى يؤكد المشرف.</div>
-  <div class="panel" style="max-width:600px">
-    <h3 style="margin-bottom:14px">🛒 الحزم</h3>
+  <div class="panel" style="max-width:600px"><h3 style="margin-bottom:14px">🛒 الحزم</h3>
     ${(packs||[]).map(p=>`<div class="pack">
       <div><div class="pts">${p.points} نقطة</div><div style="color:var(--muted);font-size:.75rem">${p.bonus_text||''}</div></div>
       <div style="text-align:left"><b>${p.usdt_price} USDT</b><br><button class="btn sm" style="margin-top:6px" onclick="createPayment('${p.id}')">شراء</button></div>
@@ -597,18 +729,21 @@ async function vPoints() {
 
 async function createPayment(packId) {
   const { data, error } = await sb.rpc('create_payment_request', { p_pack_id: packId });
-  if (error) toast(error.message); else toast('تم إنشاء الطلب رقم ' + data.reference);
+  if (error) toast(error.message);
+  else toast('تم إنشاء الطلب رقم ' + data.reference);
 }
 
-/* ===== البحث ===== */
 async function vSearch(q) {
   const { data } = await sb.from('works').select('*').eq('published', true).ilike('title', `%${q||''}%`);
-  return `<div class="search-wrap"><div class="search-box"><span class="search-icon">🔍</span><input id="searchInput" placeholder="ابحث..." value="${esc(q||'')}" onkeydown="if(event.key==='Enter')go('search',this.value)"></div></div>
+  return `<div class="search-wrap"><div class="search-box">
+    <span class="search-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></span>
+    <input id="searchInput" placeholder="ابحث..." value="${esc(q||'')}" onkeydown="if(event.key==='Enter')go('search',this.value)">
+  </div></div>
   <p class="result-count">نتائج: ${(data||[]).length}</p>
-  <div class="grid">${(data||[]).map(w=>cardHTML(w,false)).join('') || '<p style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px">لا نتائج.</p>'}</div>`;
+  <div class="grid">${(data||[]).map(w=>cardHTML(w,false)).join('') || '<div class="empty" style="grid-column:1/-1"><span class="empty-icon">🔍</span><p>لا نتائج</p></div>'}</div>`;
 }
 
-/* ===== لوحة الإدارة ===== */
+// ============ 13. لوحة الإدارة ============
 async function vAdmin() {
   if (profile?.role !== 'admin') return `<div class="panel"><h2>⛔ غير مصرح</h2></div>`;
   const [{ count: users }, { count: works }, { count: joins }, { count: payments }] = await Promise.all([
@@ -629,7 +764,6 @@ async function vAdmin() {
     <div class="stat">طلبات<b>${joins||0}</b></div>
     <div class="stat">دفعات<b>${payments||0}</b></div>
   </div>
-
   <div class="sec-title"><span class="line"></span>➕ إضافة عمل</div>
   <div class="panel">
     <div class="field"><label>العنوان</label><input id="awTitle"></div>
@@ -643,11 +777,10 @@ async function vAdmin() {
     <div class="field"><label>الملخص</label><textarea id="awSyn"></textarea></div>
     <button class="btn" onclick="adminAddWork()">حفظ</button>
   </div>
-
   <div class="sec-title"><span class="line"></span>📚 إدارة الأعمال (${(ws||[]).length})</div>
   <div class="panel">
     ${(ws||[]).map(w=>`<div class="manage-item">
-      <div class="manage-cover">${w.cover_url?`<img src="${esc(w.cover_url)}" alt="">`:'📖'}</div>
+      <div class="manage-cover">${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="">` : '📖'}</div>
       <div class="manage-info"><h4>${esc(w.title)}</h4><p>${esc(w.type)}</p></div>
       <div class="manage-actions">
         <button class="btn-edit" onclick="editWork('${w.id}')" title="تعديل">✏️</button>
@@ -655,7 +788,6 @@ async function vAdmin() {
       </div>
     </div>`).join('') || '<p style="text-align:center;color:var(--muted);padding:20px">لا توجد أعمال.</p>'}
   </div>
-
   <div class="sec-title"><span class="line"></span>➕ إضافة فصل</div>
   <div class="panel">
     <div class="field"><label>العمل</label><select id="acWork">${(ws||[]).map(w=>`<option value="${w.id}">${esc(w.title)}</option>`).join('')}</select></div>
@@ -667,14 +799,13 @@ async function vAdmin() {
     <div class="field"><label>صور</label><input id="acFiles" type="file" accept="image/*" multiple></div>
     <button class="btn" onclick="adminAddChapter()">حفظ الفصل</button>
   </div>
-
   <div class="sec-title"><span class="line"></span>📑 إدارة الفصول (${(chs||[]).length})</div>
   <div class="panel">
     ${(chs||[]).map(c=>`<div class="manage-item">
-      <div class="manage-cover">${c.kind==='comic'?'🎨':'📖'}</div>
+      <div class="manage-cover">${c.kind==='comic' ? '🎨' : '📖'}</div>
       <div class="manage-info">
-        <h4>الفصل ${c.number}${c.title?`: ${esc(c.title)}`:''}</h4>
-        <p>${esc(c.works?.title||'')} • ${c.is_locked?'🔒 مقفل':'🆓 مجاني'}</p>
+        <h4>الفصل ${c.number}${c.title ? `: ${esc(c.title)}` : ''}</h4>
+        <p>${esc(c.works?.title||'')} • ${c.is_locked ? '🔒 مقفل' : '🆓 مجاني'}</p>
       </div>
       <div class="manage-actions">
         <button class="btn-edit" onclick="editChapter('${c.id}')" title="تعديل">✏️</button>
@@ -682,21 +813,29 @@ async function vAdmin() {
       </div>
     </div>`).join('') || '<p style="text-align:center;color:var(--muted);padding:20px">لا توجد فصول.</p>'}
   </div>
-
   <div class="sec-title"><span class="line"></span>💰 الدفعات</div>
   <div class="panel table-wrap"><table class="table">
     <tr><th>المرجع</th><th>المستخدم</th><th>المبلغ</th><th>TX</th><th></th></tr>
-    ${(ps||[]).map(p=>`<tr><td>${esc(p.reference)}</td><td>${esc(p.profiles?.username||'')}</td><td>${p.point_packs?.usdt_price} USDT</td><td><input id="tx-${p.id}" style="background:var(--card2);border:1px solid var(--border);color:var(--txt);padding:5px;border-radius:6px;width:100px"></td><td><button class="btn sm" onclick="reviewPay('${p.id}','paid')">تأكيد</button></td></tr>`).join('') || '<tr><td colspan="5">لا توجد.</td></tr>'}
+    ${(ps||[]).map(p=>`<tr>
+      <td>${esc(p.reference)}</td>
+      <td>${esc(p.profiles?.username||'')}</td>
+      <td>${p.point_packs?.usdt_price} USDT</td>
+      <td><input id="tx-${p.id}" style="background:var(--card2);border:1px solid var(--border);color:var(--txt);padding:5px;border-radius:6px;width:100px"></td>
+      <td><button class="btn sm" onclick="reviewPay('${p.id}','paid')">تأكيد</button></td>
+    </tr>`).join('') || '<tr><td colspan="5">لا توجد.</td></tr>'}
   </table></div>
-
   <div class="sec-title"><span class="line"></span>🤝 الطلبات</div>
   <div class="panel table-wrap"><table class="table">
     <tr><th>الاسم</th><th>الدور</th><th>التواصل</th><th></th></tr>
-    ${(js||[]).map(j=>`<tr><td>${esc(j.name)}</td><td>${esc(j.role)}</td><td>${esc(j.contact)}</td><td><button class="btn sm" onclick="reviewJoin('${j.id}','approved')">قبول</button></td></tr>`).join('') || '<tr><td colspan="4">لا توجد.</td></tr>'}
+    ${(js||[]).map(j=>`<tr>
+      <td>${esc(j.name)}</td>
+      <td>${esc(j.role)}</td>
+      <td>${esc(j.contact)}</td>
+      <td><button class="btn sm" onclick="reviewJoin('${j.id}','approved')">قبول</button></td>
+    </tr>`).join('') || '<tr><td colspan="4">لا توجد.</td></tr>'}
   </table></div>`;
 }
 
-/* ===== إدارة الأعمال ===== */
 async function adminAddWork() {
   const p = {
     title: $('#awTitle').value.trim(),
@@ -706,14 +845,14 @@ async function adminAddWork() {
     status: $('#awStatus').value,
     genres: $('#awGenres').value.split(',').map(x=>x.trim()).filter(Boolean),
     synopsis: $('#awSyn').value.trim(),
-    cover_url: $('#awCover').value.trim()||null,
-    author: $('#awAuthor').value.trim()||null,
+    cover_url: $('#awCover').value.trim() || null,
+    author: $('#awAuthor').value.trim() || null,
     published: true,
     owner_id: session.user.id
   };
   if (!p.title) return toast('أدخل العنوان');
   const { error } = await sb.from('works').insert(p);
-  toast(error?error.message:'✅ تم');
+  toast(error ? error.message : '✅ تم');
   if (!error) route();
 }
 
@@ -747,8 +886,8 @@ async function saveWork(id) {
     age_rating: $('#ewAge').value,
     status: $('#ewStatus').value,
     genres: $('#ewGenres').value.split(',').map(x=>x.trim()).filter(Boolean),
-    cover_url: $('#ewCover').value.trim()||null,
-    author: $('#ewAuthor').value.trim()||null,
+    cover_url: $('#ewCover').value.trim() || null,
+    author: $('#ewAuthor').value.trim() || null,
     synopsis: $('#ewSyn').value.trim()
   };
   const { error } = await sb.from('works').update(p).eq('id', id);
@@ -766,19 +905,20 @@ async function deleteWork(id, title) {
   route();
 }
 
-/* ===== إدارة الفصول ===== */
 async function adminAddChapter() {
-  const work_id = $('#acWork').value,
-    number = Number($('#acNum').value),
-    title = $('#acTitle').value.trim(),
-    kind = $('#acKind').value,
-    is_locked = $('#acLock').value === 'true',
-    content = $('#acContent').value;
+  const work_id = $('#acWork').value;
+  const number = Number($('#acNum').value);
+  const title = $('#acTitle').value.trim();
+  const kind = $('#acKind').value;
+  const is_locked = $('#acLock').value === 'true';
+  const content = $('#acContent').value;
   const { data: ch, error } = await sb.from('chapters').insert({ work_id, number, title, kind, is_locked, content, published: true }).select().single();
   if (error) return toast(error.message);
-  const files = [...($('#acFiles').files||[])], paths = [];
+  const files = [...($('#acFiles').files||[])];
+  const paths = [];
   for (let i=0;i<files.length;i++) {
-    const f = files[i], path = `${ch.id}/${String(i+1).padStart(3,'0')}-${f.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+    const f = files[i];
+    const path = `${ch.id}/${String(i+1).padStart(3,'0')}-${f.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
     const r = await sb.storage.from('chapters').upload(path, f, { upsert: true });
     if (r.error) return toast(r.error.message);
     paths.push(path);
@@ -793,7 +933,13 @@ async function notifyFollowers(workId, chapterId, number) {
   const { data: favs } = await sb.from('favorites').select('user_id').eq('work_id', workId);
   if (!favs || !favs.length) return;
   const { data: w } = await sb.from('works').select('title').eq('id', workId).maybeSingle();
-  const notifs = favs.map(f => ({ user_id: f.user_id, work_id: workId, chapter_id: chapterId, type: 'new_chapter', message: `📢 فصل جديد (${number}) من "${w?.title||''}"` }));
+  const notifs = favs.map(f => ({
+    user_id: f.user_id,
+    work_id: workId,
+    chapter_id: chapterId,
+    type: 'new_chapter',
+    message: `📢 فصل جديد (${number}) من "${w?.title||''}"`
+  }));
   await sb.from('notifications').insert(notifs);
 }
 
@@ -838,39 +984,49 @@ async function deleteChapter(id, label) {
   route();
 }
 
-/* ===== Modal ===== */
 function closeModal() {
   const m = document.getElementById('modalOverlay');
   if (m) m.classList.remove('show');
 }
 
-/* ===== مراجعة ===== */
 async function reviewPay(id, status) {
   const tx = $(`#tx-${id}`)?.value.trim() || null;
-  const { error } = await sb.rpc('admin_review_payment', { p_id: id, p_status: status, p_note: tx?`TX: ${tx}`:null });
-  toast(error?error.message:'تم');
+  const { error } = await sb.rpc('admin_review_payment', {
+    p_id: id,
+    p_status: status,
+    p_note: tx ? `TX: ${tx}` : null
+  });
+  toast(error ? error.message : 'تم');
   if (!error) route();
 }
 
 async function reviewJoin(id, status) {
   const { error } = await sb.from('join_requests').update({ status }).eq('id', id);
-  toast(error?error.message:'تم');
+  toast(error ? error.message : 'تم');
   if (!error) route();
 }
 
 async function copyTxt(t) {
-  try { await navigator.clipboard.writeText(t); toast('📋 نسخ'); }
-  catch { toast('انسخ يدوياً'); }
+  try {
+    await navigator.clipboard.writeText(t);
+    toast('📋 نسخ');
+  } catch {
+    toast('انسخ يدوياً');
+  }
 }
 
-/* ===== الراوتر ===== */
+// ============ 14. الراوتر ============
 async function route() {
   const h = location.hash.replace(/^#\/?/, '').split('/');
-  const page = h[0] || 'home', id = h[1];
+  const page = h[0] || 'home';
+  const id = h[1];
+
   $$('.sidebar-nav a').forEach(a => a.classList.toggle('on', a.dataset.r === page));
   const s = $('#sidebar'); if (s) s.classList.remove('show');
   const o = $('#overlay'); if (o) o.classList.remove('show');
+
   app.innerHTML = '<div class="loading">جارٍ التحميل…</div>';
+
   try {
     if (!sb) return boot();
     let html;
@@ -888,6 +1044,7 @@ async function route() {
     else if (page === 'admin') html = await vAdmin();
     else if (page === 'search') html = await vSearch(decodeURIComponent(id || ''));
     else html = await vHome();
+
     app.innerHTML = html;
     if (page === 'comics' || page === 'novels') drawBrowse();
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -898,4 +1055,6 @@ async function route() {
 }
 
 window.addEventListener('hashchange', route);
+
+// ============ 15. بدء التطبيق ============
 boot();
