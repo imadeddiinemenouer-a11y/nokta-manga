@@ -1,34 +1,57 @@
+/* ============================================================
+   نُقطة مانجا — منطق التطبيق النهائي
+   ============================================================ */
+
 const C = window.NOKTA_CONFIG || {};
 const hasConfig = C.supabaseUrl && C.supabasePublishableKey && !C.supabaseUrl.includes('YOUR_') && !C.supabasePublishableKey.includes('YOUR_');
 const sb = hasConfig ? supabase.createClient(C.supabaseUrl, C.supabasePublishableKey) : null;
 const app = document.querySelector('#app');
+
 let session = null;
 let profile = null;
 let fState = { types: [], genres: [], ages: [], status: [], sort: 'updated' };
+let browseWorks = [];
 
 const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
 const esc = s => String(s ?? '').replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
 
+/* ===== أدوات مساعدة ===== */
 function toast(m) {
-  const t = $('#toast'); if (!t) return;
-  t.textContent = m; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2400);
+  const t = $('#toast');
+  if (!t) return;
+  t.textContent = m;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
 }
 
-function go(r, id) { location.hash = id === undefined ? '#/' + r : '#/' + r + '/' + id; }
+function go(r, id) {
+  location.hash = id === undefined ? '#/' + r : '#/' + r + '/' + id;
+}
 
 function toggleMenu() {
-  const sb = document.getElementById('sidebar');
-  const ov = document.getElementById('overlay');
-  if (sb) sb.classList.toggle('show');
-  if (ov) ov.classList.toggle('show');
+  const sidebar = $('#sidebar');
+  const overlay = $('#overlay');
+  if (sidebar) sidebar.classList.toggle('show');
+  if (overlay) overlay.classList.toggle('show');
 }
 
+function timeAgo(dateStr) {
+  if (!dateStr) return '—';
+  const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+  if (diff < 60) return 'الآن';
+  if (diff < 3600) return `منذ ${Math.floor(diff / 60)} دقيقة`;
+  if (diff < 86400) return `منذ ${Math.floor(diff / 3600)} ساعة`;
+  if (diff < 2592000) return `منذ ${Math.floor(diff / 86400)} يوم`;
+  return new Date(dateStr).toLocaleDateString('ar');
+}
+
+/* ===== الوضع الليلي / النهاري ===== */
 function theme() {
   const light = localStorage.noktaTheme === 'light';
   if (light) document.documentElement.setAttribute('data-theme', 'light');
   else document.documentElement.removeAttribute('data-theme');
-  const btn = document.getElementById('themeBtn');
+  const btn = $('#themeBtn');
   if (btn) btn.textContent = light ? '🌙' : '☀️';
 }
 
@@ -38,6 +61,7 @@ function toggleTheme() {
 }
 theme();
 
+/* ===== التهيئة ===== */
 async function boot() {
   if (!sb) {
     app.innerHTML = `<div class="panel"><h2>⚙️ إعداد Supabase مطلوب</h2><p style="color:var(--muted);line-height:2;margin-top:10px">انسخ <b>config.example.js</b> إلى <b>config.js</b> واملأ القيم.</p></div>`;
@@ -47,7 +71,10 @@ async function boot() {
   session = r.data.session;
   await loadProfile();
   sb.auth.onAuthStateChange(async (_, s) => {
-    session = s; await loadProfile(); refreshHeader(); route();
+    session = s;
+    await loadProfile();
+    refreshHeader();
+    route();
   });
   refreshHeader();
   route();
@@ -67,6 +94,14 @@ function refreshHeader() {
   if (adminBtn) adminBtn.style.display = profile?.role === 'admin' ? 'flex' : 'none';
   const authBtn = $('#authBtn');
   if (authBtn) authBtn.style.background = session ? 'var(--accent)' : '';
+  if (authBtn) authBtn.style.color = session ? '#1a1200' : '';
+
+  const userMini = $('#userMini');
+  if (userMini) {
+    userMini.innerHTML = session
+      ? `<span>👤</span><b>${esc(profile?.username || session.user.email)}</b>`
+      : `<span>👤</span><span>غير مسجل</span>`;
+  }
   if (session) loadBalance();
 }
 
@@ -75,56 +110,7 @@ async function loadBalance() {
   if (!data || data.error) return;
 }
 
-/* ===================== بطاقات ===================== */
-
-function cardHTML(w) {
-  return `<div class="card" onclick="go('work','${w.id}')">
-    <div class="cover" style="background:linear-gradient(140deg,${esc(w.grad_a||'#1a237e')},${esc(w.grad_b||'#4a148c')})">
-      ${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="">` : esc(w.emoji||'📖')}
-      <span class="age">${esc(w.age_rating||'13+')}</span>
-      <span class="type">${esc(w.type)}</span>
-    </div>
-    <div class="cinfo">
-      <h3>${esc(w.title)}</h3>
-      <div class="genres">${(w.genres||[]).slice(0,2).map(g=>`<span class="gtag">${esc(g)}</span>`).join('')}</div>
-    </div>
-  </div>`;
-}
-
-function popularItemHTML(w, index) {
-  return `<div class="popular-item" onclick="go('work','${w.id}')">
-    <div class="popular-num">${index+1}</div>
-    <div class="popular-cover" style="background:linear-gradient(140deg,${esc(w.grad_a||'#1a237e')},${esc(w.grad_b||'#4a148c')})">
-      ${w.cover_url?`<img src="${esc(w.cover_url)}" alt="">`:esc(w.emoji||'📖')}
-    </div>
-    <div class="popular-info">
-      <h3>${esc(w.title)}</h3>
-      <div class="popular-tags">${(w.genres||[]).slice(0,3).map(g=>`<span class="tag">${esc(g)}</span>`).join('')}</div>
-    </div>
-  </div>`;
-}
-
-function releaseCardHTML(w) {
-  const fakeChapters = [];
-  const total = Math.min(w.chapter_count || 5, 4);
-  for (let i = total; i >= 1; i--) {
-    fakeChapters.push(`<div class="chapter-mini"><span>الفصل ${i}</span><span class="time">منذ ${i} يوم</span></div>`);
-  }
-  return `<div class="release-card">
-    <div class="release-info">
-      <h3>${esc(w.title)}</h3>
-      <div class="release-status">${esc(w.status||'مستمر')}</div>
-      <div class="chapters-mini">${fakeChapters.join('')}</div>
-    </div>
-    <div class="release-cover" style="background:linear-gradient(140deg,${esc(w.grad_a||'#1a237e')},${esc(w.grad_b||'#4a148c')})" onclick="go('work','${w.id}')">
-      ${w.cover_url?`<img src="${esc(w.cover_url)}" alt="">`:esc(w.emoji||'📖')}
-      <span class="type-badge">${esc(w.type)}</span>
-    </div>
-  </div>`;
-}
-
-/* ===================== جلب الأعمال ===================== */
-
+/* ===== جلب الأعمال ===== */
 async function fetchWorks(kind) {
   let q = sb.from('works').select('*').eq('published', true).order('updated_at', { ascending: false });
   if (kind) q = q.eq('kind', kind);
@@ -132,18 +118,65 @@ async function fetchWorks(kind) {
   return error ? [] : data || [];
 }
 
-/* ===================== الصفحة الرئيسية ===================== */
+/* ===== بطاقات ===== */
+function cardHTML(w) {
+  return `<div class="card" onclick="go('work','${w.id}')">
+    <div class="cover" style="background:linear-gradient(140deg,${esc(w.grad_a || '#1a237e')},${esc(w.grad_b || '#4a148c')})">
+      ${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="${esc(w.title)}" loading="lazy">` : esc(w.emoji || '📖')}
+      <span class="age">${esc(w.age_rating || '13+')}</span>
+      <span class="type">${esc(w.type)}</span>
+    </div>
+    <div class="cinfo">
+      <h3>${esc(w.title)}</h3>
+      <div class="genres">${(w.genres || []).slice(0, 2).map(g => `<span class="gtag">${esc(g)}</span>`).join('')}</div>
+    </div>
+  </div>`;
+}
 
+function popularItemHTML(w, index) {
+  return `<div class="popular-item" onclick="go('work','${w.id}')">
+    <div class="popular-num">${index + 1}</div>
+    <div class="popular-cover" style="background:linear-gradient(140deg,${esc(w.grad_a || '#1a237e')},${esc(w.grad_b || '#4a148c')})">
+      ${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="${esc(w.title)}" loading="lazy">` : esc(w.emoji || '📖')}
+    </div>
+    <div class="popular-info">
+      <h3>${esc(w.title)}</h3>
+      <div class="popular-tags">${(w.genres || []).slice(0, 3).map(g => `<span class="tag">${esc(g)}</span>`).join('')}</div>
+    </div>
+  </div>`;
+}
+
+function releaseCardHTML(w) {
+  const statusClass = w.status === 'متوقفة' ? 'paused' : w.status === 'منتهية' ? 'completed' : '';
+  const fakeChapters = [];
+  const total = Math.min(w.chapter_count || 4, 4);
+  for (let i = total; i >= 1; i--) {
+    fakeChapters.push(`<div class="chapter-mini" onclick="go('work','${w.id}')"><span>الفصل ${i}</span><span class="time">${timeAgo(w.updated_at)}</span></div>`);
+  }
+  return `<div class="release-card">
+    <div class="release-info">
+      <h3>${esc(w.title)}</h3>
+      <div class="release-status ${statusClass}">${esc(w.status || 'مستمرة')}</div>
+      <div class="chapters-mini">${fakeChapters.join('')}</div>
+    </div>
+    <div class="release-cover" style="background:linear-gradient(140deg,${esc(w.grad_a || '#1a237e')},${esc(w.grad_b || '#4a148c')})" onclick="go('work','${w.id}')">
+      ${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="${esc(w.title)}" loading="lazy">` : esc(w.emoji || '📖')}
+      <span class="type-badge">${esc(w.type)}</span>
+    </div>
+  </div>`;
+}
+
+/* ===== الصفحة الرئيسية ===== */
 async function vHome() {
   const works = await fetchWorks();
-  const top = [...works].sort((a,b)=>(b.rating||0)-(a.rating||0)).slice(0,5);
-  const latest = works.slice(0,4);
-  const today = works.slice(0,6);
+  const top = [...works].sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 5);
+  const latest = works.slice(0, 4);
+  const today = works.slice(0, 6);
 
   return `
   <div class="search-wrap">
     <div class="search-box" onclick="go('search','')">
-      <span style="color:var(--muted)">🔍</span>
+      <span class="search-icon">🔍</span>
       <input placeholder="ابحث عن مانهوا أو مانجا..." readonly>
     </div>
   </div>
@@ -154,27 +187,26 @@ async function vHome() {
     <button class="btn" onclick="go('comics')">تصفح الكل ←</button>
   </div>
 
-  <div class="sec-title">🔥 الأكثر شعبية</div>
-  <div class="popular-list">${top.map((w,i)=>popularItemHTML(w,i)).join('') || '<p style="text-align:center;color:var(--muted);padding:30px">لا توجد أعمال بعد.</p>'}</div>
+  <div class="sec-title"><span class="line"></span>🔥 الأكثر شعبية</div>
+  <div class="popular-list">${top.map((w, i) => popularItemHTML(w, i)).join('') || '<p style="text-align:center;color:var(--muted);padding:30px">لا توجد أعمال بعد.</p>'}</div>
 
-  <div class="sec-title">📖 أحدث الإصدارات</div>
+  <div class="sec-title"><span class="line"></span>📖 أحدث الإصدارات</div>
   <div class="releases-list">${latest.map(releaseCardHTML).join('')}</div>
 
-  <div class="sec-title">⚡ شائع اليوم</div>
+  <div class="sec-title"><span class="line"></span>⚡ شائع اليوم</div>
   <div class="grid">${today.map(cardHTML).join('')}</div>
   `;
 }
 
-/* ===================== صفحة التصفح مع الفلاتر ===================== */
-
+/* ===== صفحة التصفح مع الفلاتر ===== */
 async function vBrowse(kind) {
   const works = await fetchWorks(kind);
-  window.__browse = works;
+  browseWorks = works;
   fState = { types: [], genres: [], ages: [], status: [], sort: 'updated' };
 
-  return `<div class="sec-title">${kind==='comic'?'🎨 جميع الأعمال':'📖 الروايات'}</div>
+  return `<div class="sec-title"><span class="line"></span>${kind === 'comic' ? '🎨 جميع الأعمال' : '📖 الروايات'}</div>
   <div class="search-wrap"><div class="search-box" onclick="go('search','')">
-    <span style="color:var(--muted)">🔍</span>
+    <span class="search-icon">🔍</span>
     <input placeholder="ابحث..." readonly>
   </div></div>
 
@@ -213,7 +245,7 @@ async function vBrowse(kind) {
   </div>
 
   <div class="active-chips" id="activeChips"></div>
-  <p style="text-align:center;color:var(--muted);font-size:.8rem;margin:16px 0" id="resultCount"></p>
+  <p class="result-count" id="resultCount"></p>
   <div class="grid" id="browseGrid"></div>`;
 }
 
@@ -221,8 +253,8 @@ function toggleDropdown(id) {
   const target = document.getElementById(id);
   if (!target) return;
   const isOpen = target.classList.contains('show');
-  document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
-  document.querySelectorAll('.filter-select').forEach(b => b.classList.remove('active'));
+  $$('.dropdown').forEach(d => d.classList.remove('show'));
+  $$('.filter-select').forEach(b => b.classList.remove('active'));
   if (!isOpen) {
     target.classList.add('show');
     const wrap = target.closest('.filter-wrap');
@@ -236,45 +268,44 @@ function toggleDropdown(id) {
 
 document.addEventListener('click', e => {
   if (!e.target.closest('.filter-wrap')) {
-    document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
-    document.querySelectorAll('.filter-select').forEach(b => b.classList.remove('active'));
+    $$('.dropdown').forEach(d => d.classList.remove('show'));
+    $$('.filter-select').forEach(b => b.classList.remove('active'));
   }
 });
 
 function buildDropdownContent(id) {
-  const works = window.__browse || [];
   const el = document.getElementById(id);
   if (!el) return;
 
   if (id === 'ddType') {
-    const types = [...new Set(works.map(w => w.type).filter(Boolean))];
-    el.innerHTML = types.map(t => `<div class="dropdown-item ${fState.types.includes(t)?'checked':''}" onclick="toggleFilter('types','${esc(t)}')"><span class="checkbox"></span><span>${esc(t)}</span></div>`).join('')
+    const types = [...new Set(browseWorks.map(w => w.type).filter(Boolean))];
+    el.innerHTML = types.map(t => `<div class="dropdown-item ${fState.types.includes(t) ? 'checked' : ''}" onclick="toggleFilter('types','${esc(t)}')"><span class="checkbox"></span><span>${esc(t)}</span></div>`).join('')
       + `<div class="dropdown-actions"><button onclick="clearFilter('types')">مسح</button><button class="primary" onclick="closeDropdowns()">تم</button></div>`;
   }
   else if (id === 'ddAge') {
-    const ages = ['13+','16+','18+'];
-    el.innerHTML = ages.map(a => `<div class="dropdown-item ${fState.ages.includes(a)?'checked':''}" onclick="toggleFilter('ages','${a}')"><span class="checkbox"></span><span>${a}</span></div>`).join('')
+    const ages = ['13+', '16+', '18+'];
+    el.innerHTML = ages.map(a => `<div class="dropdown-item ${fState.ages.includes(a) ? 'checked' : ''}" onclick="toggleFilter('ages','${a}')"><span class="checkbox"></span><span>${a}</span></div>`).join('')
       + `<div class="dropdown-actions"><button onclick="clearFilter('ages')">مسح</button><button class="primary" onclick="closeDropdowns()">تم</button></div>`;
   }
   else if (id === 'ddStatus') {
-    const statuses = ['مستمرة','متوقفة','منتهية'];
-    el.innerHTML = statuses.map(s => `<div class="dropdown-item ${fState.status.includes(s)?'checked':''}" onclick="toggleFilter('status','${s}')"><span class="checkbox"></span><span>${s}</span></div>`).join('')
+    const statuses = ['مستمرة', 'متوقفة', 'منتهية'];
+    el.innerHTML = statuses.map(s => `<div class="dropdown-item ${fState.status.includes(s) ? 'checked' : ''}" onclick="toggleFilter('status','${s}')"><span class="checkbox"></span><span>${s}</span></div>`).join('')
       + `<div class="dropdown-actions"><button onclick="clearFilter('status')">مسح</button><button class="primary" onclick="closeDropdowns()">تم</button></div>`;
   }
   else if (id === 'ddGen') {
-    const allGens = [...new Set(works.flatMap(w => w.genres || []).filter(Boolean))];
+    const allGens = [...new Set(browseWorks.flatMap(w => w.genres || []).filter(Boolean))];
     if (allGens.length === 0) {
       el.innerHTML = '<div class="dropdown-item" style="color:var(--muted)">لا توجد تصنيفات</div>';
     } else {
-      el.innerHTML = allGens.map(g => `<div class="dropdown-item ${fState.genres.includes(g)?'checked':''}" onclick="toggleFilter('genres','${esc(g)}')"><span class="checkbox"></span><span>${esc(g)}</span></div>`).join('')
+      el.innerHTML = allGens.map(g => `<div class="dropdown-item ${fState.genres.includes(g) ? 'checked' : ''}" onclick="toggleFilter('genres','${esc(g)}')"><span class="checkbox"></span><span>${esc(g)}</span></div>`).join('')
         + `<div class="dropdown-actions"><button onclick="clearFilter('genres')">مسح</button><button class="primary" onclick="closeDropdowns()">تم</button></div>`;
     }
   }
 }
 
 function closeDropdowns() {
-  document.querySelectorAll('.dropdown').forEach(d => d.classList.remove('show'));
-  document.querySelectorAll('.filter-select').forEach(b => b.classList.remove('active'));
+  $$('.dropdown').forEach(d => d.classList.remove('show'));
+  $$('.filter-select').forEach(b => b.classList.remove('active'));
 }
 
 function toggleFilter(key, value) {
@@ -291,8 +322,7 @@ function clearFilter(key) {
 }
 
 function drawBrowse() {
-  const works = window.__browse || [];
-  const list = works.filter(w => {
+  const list = browseWorks.filter(w => {
     if (fState.types.length && !fState.types.includes(w.type)) return false;
     if (fState.ages.length && !fState.ages.includes(w.age_rating)) return false;
     if (fState.status.length && !fState.status.includes(w.status)) return false;
@@ -326,37 +356,40 @@ function drawBrowse() {
   const grid = document.getElementById('browseGrid');
   if (grid) grid.innerHTML = list.length ? list.map(cardHTML).join('') : '<p style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px">لا توجد نتائج.</p>';
 
-  document.querySelectorAll('.dropdown.show').forEach(d => buildDropdownContent(d.id));
+  $$('.dropdown.show').forEach(d => buildDropdownContent(d.id));
 }
 
-/* ===================== صفحة العمل ===================== */
-
+/* ===== صفحة العمل ===== */
 async function vWork(id) {
   const { data: w } = await sb.from('works').select('*').eq('id', id).maybeSingle();
   if (!w) return '<div class="panel">العمل غير موجود.</div>';
   const { data: chs } = await sb.rpc('get_work_chapters', { p_work_id: id });
+
+  const statusClass = w.status === 'متوقفة' ? 'paused' : w.status === 'منتهية' ? 'completed' : '';
+
   return `<div class="work-head">
-    <div class="work-cover" style="background:linear-gradient(140deg,${esc(w.grad_a||'#1a237e')},${esc(w.grad_b||'#4a148c')})">
-      ${w.cover_url?`<img src="${esc(w.cover_url)}" alt="">`:esc(w.emoji||'📖')}
+    <div class="work-cover" style="background:linear-gradient(140deg,${esc(w.grad_a || '#1a237e')},${esc(w.grad_b || '#4a148c')})">
+      ${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="${esc(w.title)}">` : esc(w.emoji || '📖')}
     </div>
     <div class="work-info">
       <h1>${esc(w.title)}</h1>
       <div class="badges">
         <span class="badge b-type">${esc(w.type)}</span>
         <span class="badge b-age">${esc(w.age_rating)}</span>
-        <span class="badge">${esc(w.status||'مستمرة')}</span>
-        ${(w.genres||[]).map(g=>`<span class="badge">${esc(g)}</span>`).join('')}
+        <span class="badge b-status ${statusClass}">${esc(w.status || 'مستمرة')}</span>
+        ${(w.genres || []).map(g => `<span class="badge">${esc(g)}</span>`).join('')}
       </div>
-      <p class="work-syn">${esc(w.synopsis||'')}</p>
+      <p class="work-syn">${esc(w.synopsis || '')}</p>
+      ${w.author ? `<p class="work-author">✍️ الكاتب: <b>${esc(w.author)}</b></p>` : ''}
     </div>
   </div>
-  <div class="sec-title">📑 الفصول</div>
+  <div class="sec-title"><span class="line"></span>📑 الفصول</div>
   <div class="notice">الفصول المقفلة تُفتح بالنقاط. التحقق يتم في قاعدة البيانات.</div>
-  ${(chs||[]).map(ch=>`<div class="ch-item ${ch.is_locked?'locked':''}">
+  ${(chs || []).map(ch => `<div class="ch-item ${ch.is_locked ? 'locked' : ''}">
     <div class="num">الفصل ${ch.number}</div>
-    <div class="sub">${ch.is_locked?'🔒 مقفل':'🆓 مجاني'} ${esc(ch.title||'')}</div>
-    <button class="btn sm ${ch.is_locked?'gold':'ghost'}" onclick="readChapter('${ch.id}')">${ch.is_locked?'فتح':'قراءة'}</button>
-  </div>`).join('')||'<p style="text-align:center;color:var(--muted);padding:30px">لا توجد فصول.</p>'}`;
+    <div class="sub">${ch.is_locked ? '🔒 مقفل' : '🆓 مجاني'} ${esc(ch.title || '')}</div>
+    <button class="btn sm ${ch.is_locked ? 'gold' : 'ghost'}" onclick="readChapter('${ch.id}')">${ch.is_locked ? 'فتح' : 'قراءة'}</button>
+  </div>`).join('') || '<p style="text-align:center;color:var(--muted);padding:30px">لا توجد فصول.</p>'}`;
 }
 
 async function readChapter(id) {
@@ -366,14 +399,13 @@ async function readChapter(id) {
   go('read', id);
 }
 
-/* ===================== القارئ ===================== */
-
+/* ===== القارئ ===== */
 async function vReader(id) {
   const { data: ch, error } = await sb.rpc('get_chapter_for_reader', { p_chapter_id: id });
-  if (error || !ch) return `<div class="error">${esc(error?.message||'الفصل غير متاح')}</div>`;
+  if (error || !ch) return `<div class="error">${esc(error?.message || 'الفصل غير متاح')}</div>`;
   let body = '';
   if (ch.kind === 'novel') {
-    body = `<article class="novel-page"><h2>${esc(ch.title||'الفصل')}</h2>${(ch.content||'').split(/\n+/).map(p=>`<p>${esc(p)}</p>`).join('')}</article>`;
+    body = `<article class="novel-page"><h2>${esc(ch.title || 'الفصل')}</h2>${(ch.content || '').split(/\n+/).map(p => `<p>${esc(p)}</p>`).join('')}</article>`;
   } else {
     const imgs = ch.pages || [];
     const urls = [];
@@ -381,7 +413,7 @@ async function vReader(id) {
       const r = await sb.storage.from('chapters').createSignedUrl(path, 3600);
       if (r.data?.signedUrl) urls.push(r.data.signedUrl);
     }
-    body = urls.map((u,i)=>`<img class="reader-image" src="${esc(u)}" alt="صفحة ${i+1}" loading="lazy">`).join('') || '<div class="panel">لا توجد صفحات.</div>';
+    body = urls.map((u, i) => `<img class="reader-image" src="${esc(u)}" alt="صفحة ${i + 1}" loading="lazy">`).join('') || '<div class="panel">لا توجد صفحات.</div>';
   }
   return `<div class="reader-bar">
     <button class="btn sm ghost" onclick="go('work','${ch.work_id}')">→ رجوع</button>
@@ -389,23 +421,21 @@ async function vReader(id) {
   </div><div class="reader-body">${body}</div>`;
 }
 
-/* ===================== الفرق ===================== */
-
+/* ===== الفرق ===== */
 async function vTeams() {
   const { data } = await sb.from('teams').select('*').eq('published', true).order('name');
-  return `<div class="sec-title">🛡️ فرق الترجمة</div>
+  return `<div class="sec-title"><span class="line"></span>🛡️ فرق الترجمة</div>
   <div class="notice">يمكن لكل فريق إدارة أعماله وفصوله.</div>
-  <div class="grid2">${(data||[]).map(t=>`<div class="team-card">
+  <div class="grid2">${(data || []).map(t => `<div class="team-card">
     <h3>${esc(t.name)}</h3>
-    <p style="color:var(--muted);line-height:1.8;font-size:.85rem">${esc(t.description||'')}</p>
-    ${t.support_wallet?`<div class="wallet-box">${esc(t.support_wallet)}</div><button class="btn sm" onclick="copyTxt('${esc(t.support_wallet)}')">نسخ</button>`:''}
+    <p style="color:var(--muted);line-height:1.8;font-size:.85rem">${esc(t.description || '')}</p>
+    ${t.support_wallet ? `<div class="wallet-box">${esc(t.support_wallet)}</div><button class="btn sm" onclick="copyTxt('${esc(t.support_wallet)}')">نسخ</button>` : ''}
   </div>`).join('')}</div>`;
 }
 
-/* ===================== انضم ===================== */
-
+/* ===== انضم ===== */
 async function vJoin() {
-  return `<div class="sec-title">🤝 انضم كمساعد</div>
+  return `<div class="sec-title"><span class="line"></span>🤝 انضم كمساعد</div>
   <div class="notice">أرسل طلبك؛ سيظهر للمشرفين في لوحة الإدارة.</div>
   <div class="panel" style="max-width:650px">
     <div class="field"><label>الاسم</label><input id="jName"></div>
@@ -419,20 +449,19 @@ async function vJoin() {
 
 async function submitJoin() {
   if (!session) return go('auth');
-  const payload = { name:$('#jName').value.trim(), contact:$('#jContact').value.trim(), role:$('#jRole').value, langs:$('#jLangs').value.trim(), bio:$('#jBio').value.trim() };
+  const payload = { name: $('#jName').value.trim(), contact: $('#jContact').value.trim(), role: $('#jRole').value, langs: $('#jLangs').value.trim(), bio: $('#jBio').value.trim() };
   if (!payload.name || !payload.contact) return toast('أكمل الحقول');
   const { error } = await sb.from('join_requests').insert({ user_id: session.user.id, ...payload });
-  toast(error?error.message:'✅ تم الإرسال');
+  toast(error ? error.message : '✅ تم الإرسال');
   if (!error) route();
 }
 
-/* ===================== المصادقة ===================== */
-
+/* ===== المصادقة ===== */
 async function vAuth() {
-  return `<div class="sec-title">🔐 حسابك</div>
+  return `<div class="sec-title"><span class="line"></span>🔐 حسابك</div>
   <div class="panel" style="max-width:420px;margin:auto">
-    ${session?`<p style="text-align:center;margin-bottom:16px">مسجل الدخول: <b>${esc(profile?.username||session.user.email)}</b></p>
-      <button class="btn danger" style="width:100%" onclick="signOut()">تسجيل الخروج</button>`:`
+    ${session ? `<p style="text-align:center;margin-bottom:16px">مسجل الدخول: <b>${esc(profile?.username || session.user.email)}</b></p>
+      <button class="btn danger" style="width:100%" onclick="signOut()">تسجيل الخروج</button>` : `
       <div class="field"><label>البريد الإلكتروني</label><input id="email" type="email" placeholder="username@domain.com"></div>
       <div class="field"><label>كلمة المرور</label><input id="pass" type="password" placeholder="••••••••"></div>
       <button class="btn gold" style="width:100%;margin-bottom:10px" onclick="signIn()">تسجيل الدخول</button>
@@ -444,32 +473,36 @@ async function vAuth() {
 }
 
 async function signIn() {
-  const { error } = await sb.auth.signInWithPassword({ email:$('#email').value.trim(), password:$('#pass').value });
-  if (error) toast(error.message); else { toast('تم تسجيل الدخول'); route(); }
+  const { error } = await sb.auth.signInWithPassword({ email: $('#email').value.trim(), password: $('#pass').value });
+  if (error) toast(error.message);
+  else { toast('تم تسجيل الدخول'); route(); }
 }
 
 async function signUp() {
   const email = $('#email').value.trim(), password = $('#pass').value;
   if (password.length < 8) return toast('كلمة المرور 8 أحرف على الأقل');
   const { error } = await sb.auth.signUp({ email, password });
-  toast(error?error.message:'تم إنشاء الحساب؛ تحقق من بريدك');
+  toast(error ? error.message : 'تم إنشاء الحساب؛ تحقق من بريدك');
 }
 
-async function signOut() { await sb.auth.signOut(); toast('تم تسجيل الخروج'); route(); }
+async function signOut() {
+  await sb.auth.signOut();
+  toast('تم تسجيل الخروج');
+  route();
+}
 
-/* ===================== النقاط ===================== */
-
+/* ===== النقاط ===== */
 async function vPoints() {
-  if (!session) return `<div class="panel"><h2>👑 العضويات</h2><p style="margin:10px 0">سجّل الدخول لإدارة رصيدك.</p><button class="btn" onclick="go('auth')">تسجيل الدخول</button></div>`;
+  if (!session) return `<div class="panel"><h2>👑 النقاط</h2><p style="margin:10px 0">سجّل الدخول لإدارة رصيدك.</p><button class="btn" onclick="go('auth')">تسجيل الدخول</button></div>`;
   const { data } = await sb.rpc('get_my_balance');
   const balance = data?.balance || 0;
-  const { data: packs } = await sb.from('point_packs').select('*').eq('active',true).order('sort_order');
-  return `<div class="sec-title">👑 رصيدك: ${balance} نقطة</div>
+  const { data: packs } = await sb.from('point_packs').select('*').eq('active', true).order('sort_order');
+  return `<div class="sec-title"><span class="line"></span>👑 رصيدك: ${balance} نقطة</div>
   <div class="notice">شراء النقاط هنا ينشئ طلب دفع. لن تتم إضافة النقاط حتى يؤكد المشرف.</div>
   <div class="panel" style="max-width:600px">
     <h3 style="margin-bottom:14px">🛒 الحزم</h3>
-    ${(packs||[]).map(p=>`<div class="pack">
-      <div><div class="pts">${p.points} نقطة</div><div style="color:var(--muted);font-size:.75rem">${p.bonus_text||''}</div></div>
+    ${(packs || []).map(p => `<div class="pack">
+      <div><div class="pts">${p.points} نقطة</div><div style="color:var(--muted);font-size:.75rem">${p.bonus_text || ''}</div></div>
       <div style="text-align:left"><b>${p.usdt_price} USDT</b><br><button class="btn sm" style="margin-top:6px" onclick="createPayment('${p.id}')">شراء</button></div>
     </div>`).join('')}
   </div>`;
@@ -481,39 +514,38 @@ async function createPayment(packId) {
   else toast('تم إنشاء طلب الدفع رقم ' + data.reference);
 }
 
-/* ===================== البحث ===================== */
-
+/* ===== البحث ===== */
 async function vSearch(q) {
-  const { data } = await sb.from('works').select('*').eq('published',true).ilike('title', `%${q||''}%`);
+  const { data } = await sb.from('works').select('*').eq('published', true).ilike('title', `%${q || ''}%`);
   return `<div class="search-wrap"><div class="search-box">
-    <span style="color:var(--muted)">🔍</span>
-    <input id="searchInput" placeholder="ابحث..." value="${esc(q||'')}" onkeydown="if(event.key==='Enter')go('search',this.value)">
+    <span class="search-icon">🔍</span>
+    <input id="searchInput" placeholder="ابحث..." value="${esc(q || '')}" onkeydown="if(event.key==='Enter')go('search',this.value)">
   </div></div>
-  <p style="text-align:center;color:var(--muted);font-size:.8rem;margin:14px 0">نتائج: ${(data||[]).length}</p>
-  <div class="grid">${(data||[]).map(cardHTML).join('')||'<p style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px">لا نتائج.</p>'}</div>`;
+  <p class="result-count">نتائج: ${(data || []).length}</p>
+  <div class="grid">${(data || []).map(cardHTML).join('') || '<p style="grid-column:1/-1;text-align:center;color:var(--muted);padding:40px">لا نتائج.</p>'}</div>`;
 }
 
-/* ===================== لوحة الإدارة ===================== */
-
+/* ===== لوحة الإدارة ===== */
 async function vAdmin() {
   if (profile?.role !== 'admin') return `<div class="panel"><h2>⛔ غير مصرح</h2></div>`;
-  const [{count:users},{count:works},{count:joins},{count:payments}] = await Promise.all([
-    sb.from('profiles').select('*',{count:'exact',head:true}),
-    sb.from('works').select('*',{count:'exact',head:true}),
-    sb.from('join_requests').select('*',{count:'exact',head:true}).eq('status','pending'),
-    sb.from('payment_requests').select('*',{count:'exact',head:true}).eq('status','pending')
+  const [{ count: users }, { count: works }, { count: joins }, { count: payments }] = await Promise.all([
+    sb.from('profiles').select('*', { count: 'exact', head: true }),
+    sb.from('works').select('*', { count: 'exact', head: true }),
+    sb.from('join_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+    sb.from('payment_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending')
   ]);
-  const { data: ws } = await sb.from('works').select('id,title').order('created_at',{ascending:false});
-  const { data: ps } = await sb.from('payment_requests').select('id,reference,point_packs(points,usdt_price),profiles(username)').eq('status','pending');
-  const { data: js } = await sb.from('join_requests').select('id,name,contact,role').eq('status','pending');
-  return `<div class="sec-title">🛠️ لوحة الإدارة</div>
+  const { data: ws } = await sb.from('works').select('id,title').order('created_at', { ascending: false });
+  const { data: ps } = await sb.from('payment_requests').select('id,reference,point_packs(points,usdt_price),profiles(username)').eq('status', 'pending');
+  const { data: js } = await sb.from('join_requests').select('id,name,contact,role').eq('status', 'pending');
+
+  return `<div class="sec-title"><span class="line"></span>🛠️ لوحة الإدارة</div>
   <div class="admin-grid">
-    <div class="stat">المستخدمون<b>${users||0}</b></div>
-    <div class="stat">الأعمال<b>${works||0}</b></div>
-    <div class="stat">طلبات<b>${joins||0}</b></div>
-    <div class="stat">دفعات<b>${payments||0}</b></div>
+    <div class="stat">المستخدمون<b>${users || 0}</b></div>
+    <div class="stat">الأعمال<b>${works || 0}</b></div>
+    <div class="stat">طلبات<b>${joins || 0}</b></div>
+    <div class="stat">دفعات<b>${payments || 0}</b></div>
   </div>
-  <div class="sec-title">➕ إضافة عمل</div>
+  <div class="sec-title"><span class="line"></span>➕ إضافة عمل</div>
   <div class="panel">
     <div class="field"><label>العنوان</label><input id="awTitle"></div>
     <div class="field"><label>النوع</label><select id="awType"><option>مانهوا</option><option>مانجا</option><option>مانها</option><option>رواية</option><option>كوميكس</option></select></div>
@@ -522,12 +554,13 @@ async function vAdmin() {
     <div class="field"><label>الحالة</label><select id="awStatus"><option>مستمرة</option><option>متوقفة</option><option>منتهية</option></select></div>
     <div class="field"><label>الأنواع (بفاصلة)</label><input id="awGenres" placeholder="أكشن, فانتازيا"></div>
     <div class="field"><label>رابط صورة الغلاف</label><input id="awCover" placeholder="https://..."></div>
+    <div class="field"><label>الكاتب (اختياري)</label><input id="awAuthor"></div>
     <div class="field"><label>الملخص</label><textarea id="awSyn"></textarea></div>
     <button class="btn" onclick="adminAddWork()">حفظ</button>
   </div>
-  <div class="sec-title">➕ إضافة فصل</div>
+  <div class="sec-title"><span class="line"></span>➕ إضافة فصل</div>
   <div class="panel">
-    <div class="field"><label>العمل</label><select id="acWork">${(ws||[]).map(w=>`<option value="${w.id}">${esc(w.title)}</option>`).join('')}</select></div>
+    <div class="field"><label>العمل</label><select id="acWork">${(ws || []).map(w => `<option value="${w.id}">${esc(w.title)}</option>`).join('')}</select></div>
     <div class="field"><label>رقم الفصل</label><input id="acNum" type="number"></div>
     <div class="field"><label>العنوان</label><input id="acTitle"></div>
     <div class="field"><label>النوع</label><select id="acKind"><option value="novel">رواية</option><option value="comic">كوميكس</option></select></div>
@@ -536,98 +569,102 @@ async function vAdmin() {
     <div class="field"><label>صور</label><input id="acFiles" type="file" accept="image/*" multiple></div>
     <button class="btn" onclick="adminAddChapter()">حفظ الفصل</button>
   </div>
-  <div class="sec-title">💰 الدفعات</div>
+  <div class="sec-title"><span class="line"></span>💰 الدفعات</div>
   <div class="panel table-wrap"><table class="table">
     <tr><th>المرجع</th><th>المستخدم</th><th>المبلغ</th><th>TX</th><th></th></tr>
-    ${(ps||[]).map(p=>`<tr><td>${esc(p.reference)}</td><td>${esc(p.profiles?.username||'')}</td><td>${p.point_packs?.usdt_price} USDT</td><td><input id="tx-${p.id}" style="background:var(--card2);border:1px solid var(--border);color:var(--txt);padding:5px;border-radius:6px;width:100px"></td><td><button class="btn sm" onclick="reviewPay('${p.id}','paid')">تأكيد</button></td></tr>`).join('')||'<tr><td colspan="5">لا توجد.</td></tr>'}
+    ${(ps || []).map(p => `<tr><td>${esc(p.reference)}</td><td>${esc(p.profiles?.username || '')}</td><td>${p.point_packs?.usdt_price} USDT</td><td><input id="tx-${p.id}" style="background:var(--card2);border:1px solid var(--border);color:var(--txt);padding:5px;border-radius:6px;width:100px"></td><td><button class="btn sm" onclick="reviewPay('${p.id}','paid')">تأكيد</button></td></tr>`).join('') || '<tr><td colspan="5">لا توجد.</td></tr>'}
   </table></div>
-  <div class="sec-title">🤝 الطلبات</div>
+  <div class="sec-title"><span class="line"></span>🤝 الطلبات</div>
   <div class="panel table-wrap"><table class="table">
     <tr><th>الاسم</th><th>الدور</th><th>التواصل</th><th></th></tr>
-    ${(js||[]).map(j=>`<tr><td>${esc(j.name)}</td><td>${esc(j.role)}</td><td>${esc(j.contact)}</td><td><button class="btn sm" onclick="reviewJoin('${j.id}','approved')">قبول</button></td></tr>`).join('')||'<tr><td colspan="4">لا توجد.</td></tr>'}
+    ${(js || []).map(j => `<tr><td>${esc(j.name)}</td><td>${esc(j.role)}</td><td>${esc(j.contact)}</td><td><button class="btn sm" onclick="reviewJoin('${j.id}','approved')">قبول</button></td></tr>`).join('') || '<tr><td colspan="4">لا توجد.</td></tr>'}
   </table></div>`;
 }
 
 async function adminAddWork() {
   const payload = {
-    title:$('#awTitle').value.trim(),
-    type:$('#awType').value,
-    kind:$('#awKind').value,
-    age_rating:$('#awAge').value,
-    status:$('#awStatus').value,
-    genres:$('#awGenres').value.split(',').map(x=>x.trim()).filter(Boolean),
-    synopsis:$('#awSyn').value.trim(),
-    cover_url:$('#awCover').value.trim()||null,
-    published:true,
-    owner_id:session.user.id
+    title: $('#awTitle').value.trim(),
+    type: $('#awType').value,
+    kind: $('#awKind').value,
+    age_rating: $('#awAge').value,
+    status: $('#awStatus').value,
+    genres: $('#awGenres').value.split(',').map(x => x.trim()).filter(Boolean),
+    synopsis: $('#awSyn').value.trim(),
+    cover_url: $('#awCover').value.trim() || null,
+    author: $('#awAuthor').value.trim() || null,
+    published: true,
+    owner_id: session.user.id
   };
   if (!payload.title) return toast('أدخل العنوان');
   const { error } = await sb.from('works').insert(payload);
-  toast(error?error.message:'✅ تم');
+  toast(error ? error.message : '✅ تم');
   if (!error) route();
 }
 
 async function adminAddChapter() {
-  const work_id=$('#acWork').value, number=Number($('#acNum').value), title=$('#acTitle').value.trim(),
-    kind=$('#acKind').value, is_locked=$('#acLock').value==='true', content=$('#acContent').value;
-  const { data: ch, error } = await sb.from('chapters').insert({ work_id, number, title, kind, is_locked, content, published:true }).select().single();
+  const work_id = $('#acWork').value, number = Number($('#acNum').value), title = $('#acTitle').value.trim(),
+    kind = $('#acKind').value, is_locked = $('#acLock').value === 'true', content = $('#acContent').value;
+  const { data: ch, error } = await sb.from('chapters').insert({ work_id, number, title, kind, is_locked, content, published: true }).select().single();
   if (error) return toast(error.message);
-  const files = [...($('#acFiles').files||[])]; const paths = [];
-  for (let i=0;i<files.length;i++) {
-    const f=files[i], path=`${ch.id}/${String(i+1).padStart(3,'0')}-${f.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
-    const r = await sb.storage.from('chapters').upload(path, f, { upsert:true });
+  const files = [...($('#acFiles').files || [])]; const paths = [];
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i], path = `${ch.id}/${String(i + 1).padStart(3, '0')}-${f.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const r = await sb.storage.from('chapters').upload(path, f, { upsert: true });
     if (r.error) return toast(r.error.message);
     paths.push(path);
   }
-  if (paths.length) await sb.from('chapters').update({ pages:paths, kind:'comic' }).eq('id', ch.id);
+  if (paths.length) await sb.from('chapters').update({ pages: paths, kind: 'comic' }).eq('id', ch.id);
   toast('✅ تم');
   route();
 }
 
 async function reviewPay(id, status) {
-  const tx = $(`#tx-${id}`)?.value.trim()||null;
-  const { error } = await sb.rpc('admin_review_payment', { p_id:id, p_status:status, p_note:tx?`TX: ${tx}`:null });
-  toast(error?error.message:'تم'); if (!error) route();
+  const tx = $(`#tx-${id}`)?.value.trim() || null;
+  const { error } = await sb.rpc('admin_review_payment', { p_id: id, p_status: status, p_note: tx ? `TX: ${tx}` : null });
+  toast(error ? error.message : 'تم');
+  if (!error) route();
 }
 
 async function reviewJoin(id, status) {
-  const { error } = await sb.from('join_requests').update({status}).eq('id', id);
-  toast(error?error.message:'تم'); if (!error) route();
+  const { error } = await sb.from('join_requests').update({ status }).eq('id', id);
+  toast(error ? error.message : 'تم');
+  if (!error) route();
 }
 
 async function copyTxt(t) {
   try { await navigator.clipboard.writeText(t); toast('📋 نسخ'); } catch { toast('انسخ يدوياً'); }
 }
 
-/* ===================== الراوتر ===================== */
-
+/* ===== الراوتر ===== */
 async function route() {
-  const h = location.hash.replace(/^#\/?/,'').split('/');
-  const page = h[0]||'home', id = h[1];
-  document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.toggle('on', a.dataset.r === page));
-  const sbEl = document.getElementById('sidebar');
-  if (sbEl) sbEl.classList.remove('show');
-  const ov = document.getElementById('overlay');
-  if (ov) ov.classList.remove('show');
+  const h = location.hash.replace(/^#\/?/, '').split('/');
+  const page = h[0] || 'home', id = h[1];
+
+  $$('.sidebar-nav a').forEach(a => a.classList.toggle('on', a.dataset.r === page));
+  const sidebar = $('#sidebar'); if (sidebar) sidebar.classList.remove('show');
+  const overlay = $('#overlay'); if (overlay) overlay.classList.remove('show');
+
   app.innerHTML = '<div class="loading">جارٍ التحميل…</div>';
+
   try {
     if (!sb) return boot();
     let html;
-    if (page==='home') html = await vHome();
-    else if (page==='comics') html = await vBrowse('comic');
-    else if (page==='novels') html = await vBrowse('novel');
-    else if (page==='work') html = await vWork(id);
-    else if (page==='read') html = await vReader(id);
-    else if (page==='teams') html = await vTeams();
-    else if (page==='join') html = await vJoin();
-    else if (page==='auth') html = await vAuth();
-    else if (page==='points') html = await vPoints();
-    else if (page==='admin') html = await vAdmin();
-    else if (page==='search') html = await vSearch(decodeURIComponent(id||''));
+    if (page === 'home') html = await vHome();
+    else if (page === 'comics') html = await vBrowse('comic');
+    else if (page === 'novels') html = await vBrowse('novel');
+    else if (page === 'work') html = await vWork(id);
+    else if (page === 'read') html = await vReader(id);
+    else if (page === 'teams') html = await vTeams();
+    else if (page === 'join') html = await vJoin();
+    else if (page === 'auth') html = await vAuth();
+    else if (page === 'points') html = await vPoints();
+    else if (page === 'admin') html = await vAdmin();
+    else if (page === 'search') html = await vSearch(decodeURIComponent(id || ''));
     else html = await vHome();
+
     app.innerHTML = html;
-    if (page==='comics'||page==='novels') drawBrowse();
-    window.scrollTo({top:0,behavior:'smooth'});
+    if (page === 'comics' || page === 'novels') drawBrowse();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch (e) {
     console.error(e);
     app.innerHTML = `<div class="error">حدث خطأ: ${esc(e.message)}</div>`;
