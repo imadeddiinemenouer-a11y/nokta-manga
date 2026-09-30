@@ -14,7 +14,12 @@
 <header><div class="hwrap">
 <a class="logo" href="#/">📖 نُقطة <span>مانجا</span></a>
 <nav><a href="#/" data-r="home">الرئيسية</a><a href="#/comics" data-r="comics">الكوميكس</a><a href="#/novels" data-r="novels">الروايات</a><a href="#/teams" data-r="teams">الفرق</a><a href="#/join" data-r="join">انضم كمساعد</a></nav>
-<div class="hacts"><button class="chip" onclick="go('points')">🪙 <b id="ptsBal">0</b> نقطة</button><button class="icon-btn" id="themeBtn" onclick="toggleTheme()">🌙</button><button class="btn sm" id="authBtn" onclick="go('auth')">تسجيل الدخول</button></div>
+<div class="hacts">
+<button class="btn sm danger" id="adminBtn" style="display:none;" onclick="go('admin')">🛠️ الإدارة</button>
+<button class="chip" onclick="go('points')">🪙 <b id="ptsBal">0</b> نقطة</button>
+<button class="icon-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
+<button class="btn sm" id="authBtn" onclick="go('auth')">تسجيل الدخول</button>
+</div>
 </div></header>
 <main id="app"><div class="loading">جارٍ تحميل الموقع…</div></main>
 <footer>نُقطة مانجا — منصة نشر وقراءة عربية • المحتوى والحقوق مسؤولية أصحابها وفرقها</footer><div id="toast"></div>
