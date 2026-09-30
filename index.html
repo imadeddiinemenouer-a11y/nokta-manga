@@ -2,8 +2,9 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
 <meta name="theme-color" content="#0a0a0f">
+<meta name="description" content="نُقطة مانجا — منصة عربية لقراءة المانهوا والمانجا والروايات">
 <title>نُقطة مانجا | منصة المانهوا والروايات</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -15,35 +16,42 @@
 <body>
 <header>
 <div class="hwrap">
-<button class="menu-btn" onclick="toggleMenu()">☰</button>
+<button class="menu-btn" onclick="toggleMenu()" aria-label="القائمة">☰</button>
 <a class="logo" href="#/">📖 نُقطة<span>مانجا</span></a>
 <div class="hacts">
-<button class="icon-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
-<button class="icon-btn" id="adminBtn" style="display:none;" onclick="go('admin')">⚙️</button>
-<button class="icon-btn" id="authBtn" onclick="go('auth')">👤</button>
+<button class="icon-btn" id="themeBtn" onclick="toggleTheme()" aria-label="الوضع الليلي">🌙</button>
+<button class="icon-btn" id="adminBtn" style="display:none;" onclick="go('admin')" aria-label="لوحة الإدارة">⚙️</button>
+<button class="icon-btn" id="authBtn" onclick="go('auth')" aria-label="الحساب">👤</button>
 </div>
 </div>
 </header>
 
-<!-- القائمة الجانبية -->
 <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+
 <aside class="sidebar" id="sidebar">
 <div class="sidebar-head">
-<span>نُقطة مانجا</span>
+<span>نُقطة<span>مانجا</span></span>
 <button class="close-btn" onclick="toggleMenu()">✕</button>
 </div>
 <nav class="sidebar-nav">
-<a href="#/" data-r="home">🏠 الرئيسية</a>
-<a href="#/comics" data-r="comics">🎨 قائمة الأعمال</a>
-<a href="#/novels" data-r="novels">📖 روايات</a>
-<a href="#/teams" data-r="teams">🛡️ الفرق</a>
-<a href="#/points" data-r="points">👑 العضويات</a>
-<a href="#/join" data-r="join">🤝 انضم كمساعد</a>
+<a href="#/" data-r="home" onclick="toggleMenu()">🏠 الرئيسية</a>
+<a href="#/comics" data-r="comics" onclick="toggleMenu()">🎨 قائمة الأعمال</a>
+<a href="#/novels" data-r="novels" onclick="toggleMenu()">📖 الروايات</a>
+<a href="#/teams" data-r="teams" onclick="toggleMenu()">🛡️ الفرق</a>
+<a href="#/points" data-r="points" onclick="toggleMenu()">👑 النقاط</a>
+<a href="#/join" data-r="join" onclick="toggleMenu()">🤝 انضم كمساعد</a>
 </nav>
+<div class="sidebar-foot">
+<div class="user-mini" id="userMini"></div>
+</div>
 </aside>
 
 <main id="app"><div class="loading">جارٍ التحميل…</div></main>
-<footer>© 2025 نُقطة مانجا — جميع الحقوق محفوظة</footer>
+<footer>
+<div class="footer-inner">
+<span>© 2025 نُقطة مانجا — جميع الحقوق محفوظة</span>
+</div>
+</footer>
 <div id="toast"></div>
 <script src="app.js"></script>
 </body>
