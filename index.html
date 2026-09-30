@@ -1,27 +1,44 @@
 <!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="description" content="نُقطة مانجا — منصة عربية للمانهوا والمانجا والروايات">
+<meta name="theme-color" content="#08090d">
 <title>نُقطة مانجا | منصة المانهوا والروايات</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 </head>
 <body>
-<header><div class="hwrap">
-<a class="logo" href="#/">📖 نُقطة <span>مانجا</span></a>
-<nav><a href="#/" data-r="home">الرئيسية</a><a href="#/comics" data-r="comics">الكوميكس</a><a href="#/novels" data-r="novels">الروايات</a><a href="#/teams" data-r="teams">الفرق</a><a href="#/join" data-r="join">انضم كمساعد</a></nav>
+<header>
+<div class="hwrap">
+<a class="logo" href="#/">📖 نُقطة<span>مانجا</span></a>
 <div class="hacts">
 <button class="btn sm danger" id="adminBtn" style="display:none;" onclick="go('admin')">🛠️ الإدارة</button>
-<button class="chip" onclick="go('points')">🪙 <b id="ptsBal">0</b> نقطة</button>
+<button class="chip" onclick="go('points')">🪙 <b id="ptsBal">0</b></button>
 <button class="icon-btn" id="themeBtn" onclick="toggleTheme()">🌙</button>
-<button class="btn sm" id="authBtn" onclick="go('auth')">تسجيل الدخول</button>
+<button class="btn sm" id="authBtn" onclick="go('auth')">دخول</button>
 </div>
-</div></header>
-<main id="app"><div class="loading">جارٍ تحميل الموقع…</div></main>
-<footer>نُقطة مانجا — منصة نشر وقراءة عربية • المحتوى والحقوق مسؤولية أصحابها وفرقها</footer><div id="toast"></div>
+</div>
+</header>
+
+<main id="app"><div class="loading">جارٍ التحميل…</div></main>
+
+<footer>نُقطة مانجا — منصة نشر وقراءة عربية</footer>
+
+<nav class="bottom-nav">
+<a href="#/" data-r="home"><span>🏠</span><small>الرئيسية</small></a>
+<a href="#/comics" data-r="comics"><span>🎨</span><small>الكوميكس</small></a>
+<a href="#/novels" data-r="novels"><span>📖</span><small>الروايات</small></a>
+<a href="#/teams" data-r="teams"><span>🛡️</span><small>الفرق</small></a>
+<a href="#/auth" data-r="auth"><span>👤</span><small>حسابي</small></a>
+</nav>
+
+<div id="toast"></div>
 <script src="app.js"></script>
-</body></html>
+</body>
+</html>
