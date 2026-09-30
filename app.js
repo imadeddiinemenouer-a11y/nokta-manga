@@ -9,14 +9,20 @@ const app = document.querySelector('#app');
 
 let session = null;
 let profile = null;
-let fState = { types: [], genres: [], ages: [], status: [], sort: 'updated' };
+let fState = { types: [], genres: [], ages: [], status: [] };
 let browseWorks = [];
 
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
 const esc = s => String(s ?? '').replace(/[&<>'"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[c]));
 
-/* ===== أدوات مساعدة ===== */
+/* ===== خيارات ثابتة للفلاتر ===== */
+const STATIC_TYPES = ['مانهوا', 'مانجا', 'مانها', 'رواية', 'كوميكس'];
+const STATIC_AGES = ['13+', '16+', '18+'];
+const STATIC_STATUS = ['مستمرة', 'متوقفة', 'منتهية'];
+const STATIC_GENRES = ['أكشن','فانتازيا','رومانسية','غموض','نظام','دراما','مغامرة','مدرسي','شونين','قوى خاصة','ناجٍ','مصاصين','سحر','مملكة','تاريخي','ارتقاء','رياضة','خيال','حياة يومية','جوسي','فنون قتالية','سينين','شوجو','شونين','إيسيكاي','ميكا','رعب','نفسي','عسكري','موسيقي'];
+
+/* ===== أدوات ===== */
 function toast(m) {
   const t = $('#toast');
   if (!t) return;
@@ -34,16 +40,6 @@ function toggleMenu() {
   const overlay = $('#overlay');
   if (sidebar) sidebar.classList.toggle('show');
   if (overlay) overlay.classList.toggle('show');
-}
-
-function timeAgo(dateStr) {
-  if (!dateStr) return '—';
-  const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
-  if (diff < 60) return 'الآن';
-  if (diff < 3600) return `منذ ${Math.floor(diff / 60)} دقيقة`;
-  if (diff < 86400) return `منذ ${Math.floor(diff / 3600)} ساعة`;
-  if (diff < 2592000) return `منذ ${Math.floor(diff / 86400)} يوم`;
-  return new Date(dateStr).toLocaleDateString('ar');
 }
 
 /* ===== الوضع الليلي / النهاري ===== */
@@ -93,9 +89,10 @@ function refreshHeader() {
   const adminBtn = $('#adminBtn');
   if (adminBtn) adminBtn.style.display = profile?.role === 'admin' ? 'flex' : 'none';
   const authBtn = $('#authBtn');
-  if (authBtn) authBtn.style.background = session ? 'var(--accent)' : '';
-  if (authBtn) authBtn.style.color = session ? '#1a1200' : '';
-
+  if (authBtn) {
+    authBtn.style.background = session ? 'var(--accent)' : '';
+    authBtn.style.color = session ? '#1a1200' : '';
+  }
   const userMini = $('#userMini');
   if (userMini) {
     userMini.innerHTML = session
@@ -151,7 +148,7 @@ function releaseCardHTML(w) {
   const fakeChapters = [];
   const total = Math.min(w.chapter_count || 4, 4);
   for (let i = total; i >= 1; i--) {
-    fakeChapters.push(`<div class="chapter-mini" onclick="go('work','${w.id}')"><span>الفصل ${i}</span><span class="time">${timeAgo(w.updated_at)}</span></div>`);
+    fakeChapters.push(`<div class="chapter-mini" onclick="go('work','${w.id}')"><span>الفصل ${i}</span><span class="time">منذ ${i} يوم</span></div>`);
   }
   return `<div class="release-card">
     <div class="release-info">
@@ -188,10 +185,10 @@ async function vHome() {
   </div>
 
   <div class="sec-title"><span class="line"></span>🔥 الأكثر شعبية</div>
-  <div class="popular-list">${top.map((w, i) => popularItemHTML(w, i)).join('') || '<p style="text-align:center;color:var(--muted);padding:30px">لا توجد أعمال بعد.</p>'}</div>
+  <div class="popular-list">${top.map((w, i) => popularItemHTML(w, i)).join('') || '<p style="text-align:center;color:var(--muted);padding:30px">لا توجد أعمال بعد. أضف عملاً من لوحة الإدارة.</p>'}</div>
 
   <div class="sec-title"><span class="line"></span>📖 أحدث الإصدارات</div>
-  <div class="releases-list">${latest.map(releaseCardHTML).join('')}</div>
+  <div class="releases-list">${latest.map(releaseCardHTML).join('') || '<p style="text-align:center;color:var(--muted);padding:30px">لا توجد إصدارات بعد.</p>'}</div>
 
   <div class="sec-title"><span class="line"></span>⚡ شائع اليوم</div>
   <div class="grid">${today.map(cardHTML).join('')}</div>
@@ -202,7 +199,7 @@ async function vHome() {
 async function vBrowse(kind) {
   const works = await fetchWorks(kind);
   browseWorks = works;
-  fState = { types: [], genres: [], ages: [], status: [], sort: 'updated' };
+  fState = { types: [], genres: [], ages: [], status: [] };
 
   return `<div class="sec-title"><span class="line"></span>${kind === 'comic' ? '🎨 جميع الأعمال' : '📖 الروايات'}</div>
   <div class="search-wrap"><div class="search-box" onclick="go('search','')">
@@ -273,33 +270,30 @@ document.addEventListener('click', e => {
   }
 });
 
+/* ===== بناء محتوى القوائم المنسدلة ===== */
 function buildDropdownContent(id) {
   const el = document.getElementById(id);
   if (!el) return;
 
   if (id === 'ddType') {
-    const types = [...new Set(browseWorks.map(w => w.type).filter(Boolean))];
-    el.innerHTML = types.map(t => `<div class="dropdown-item ${fState.types.includes(t) ? 'checked' : ''}" onclick="toggleFilter('types','${esc(t)}')"><span class="checkbox"></span><span>${esc(t)}</span></div>`).join('')
+    const fromDB = [...new Set(browseWorks.map(w => w.type).filter(Boolean))];
+    const all = [...new Set([...STATIC_TYPES, ...fromDB])];
+    el.innerHTML = all.map(t => `<div class="dropdown-item ${fState.types.includes(t) ? 'checked' : ''}" onclick="toggleFilter('types','${esc(t)}')"><span class="checkbox"></span><span>${esc(t)}</span></div>`).join('')
       + `<div class="dropdown-actions"><button onclick="clearFilter('types')">مسح</button><button class="primary" onclick="closeDropdowns()">تم</button></div>`;
   }
   else if (id === 'ddAge') {
-    const ages = ['13+', '16+', '18+'];
-    el.innerHTML = ages.map(a => `<div class="dropdown-item ${fState.ages.includes(a) ? 'checked' : ''}" onclick="toggleFilter('ages','${a}')"><span class="checkbox"></span><span>${a}</span></div>`).join('')
+    el.innerHTML = STATIC_AGES.map(a => `<div class="dropdown-item ${fState.ages.includes(a) ? 'checked' : ''}" onclick="toggleFilter('ages','${a}')"><span class="checkbox"></span><span>${a}</span></div>`).join('')
       + `<div class="dropdown-actions"><button onclick="clearFilter('ages')">مسح</button><button class="primary" onclick="closeDropdowns()">تم</button></div>`;
   }
   else if (id === 'ddStatus') {
-    const statuses = ['مستمرة', 'متوقفة', 'منتهية'];
-    el.innerHTML = statuses.map(s => `<div class="dropdown-item ${fState.status.includes(s) ? 'checked' : ''}" onclick="toggleFilter('status','${s}')"><span class="checkbox"></span><span>${s}</span></div>`).join('')
+    el.innerHTML = STATIC_STATUS.map(s => `<div class="dropdown-item ${fState.status.includes(s) ? 'checked' : ''}" onclick="toggleFilter('status','${s}')"><span class="checkbox"></span><span>${s}</span></div>`).join('')
       + `<div class="dropdown-actions"><button onclick="clearFilter('status')">مسح</button><button class="primary" onclick="closeDropdowns()">تم</button></div>`;
   }
   else if (id === 'ddGen') {
-    const allGens = [...new Set(browseWorks.flatMap(w => w.genres || []).filter(Boolean))];
-    if (allGens.length === 0) {
-      el.innerHTML = '<div class="dropdown-item" style="color:var(--muted)">لا توجد تصنيفات</div>';
-    } else {
-      el.innerHTML = allGens.map(g => `<div class="dropdown-item ${fState.genres.includes(g) ? 'checked' : ''}" onclick="toggleFilter('genres','${esc(g)}')"><span class="checkbox"></span><span>${esc(g)}</span></div>`).join('')
-        + `<div class="dropdown-actions"><button onclick="clearFilter('genres')">مسح</button><button class="primary" onclick="closeDropdowns()">تم</button></div>`;
-    }
+    const fromDB = [...new Set(browseWorks.flatMap(w => w.genres || []).filter(Boolean))];
+    const all = [...new Set([...STATIC_GENRES, ...fromDB])];
+    el.innerHTML = all.map(g => `<div class="dropdown-item ${fState.genres.includes(g) ? 'checked' : ''}" onclick="toggleFilter('genres','${esc(g)}')"><span class="checkbox"></span><span>${esc(g)}</span></div>`).join('')
+      + `<div class="dropdown-actions"><button onclick="clearFilter('genres')">مسح</button><button class="primary" onclick="closeDropdowns()">تم</button></div>`;
   }
 }
 
@@ -364,7 +358,6 @@ async function vWork(id) {
   const { data: w } = await sb.from('works').select('*').eq('id', id).maybeSingle();
   if (!w) return '<div class="panel">العمل غير موجود.</div>';
   const { data: chs } = await sb.rpc('get_work_chapters', { p_work_id: id });
-
   const statusClass = w.status === 'متوقفة' ? 'paused' : w.status === 'منتهية' ? 'completed' : '';
 
   return `<div class="work-head">
@@ -430,7 +423,7 @@ async function vTeams() {
     <h3>${esc(t.name)}</h3>
     <p style="color:var(--muted);line-height:1.8;font-size:.85rem">${esc(t.description || '')}</p>
     ${t.support_wallet ? `<div class="wallet-box">${esc(t.support_wallet)}</div><button class="btn sm" onclick="copyTxt('${esc(t.support_wallet)}')">نسخ</button>` : ''}
-  </div>`).join('')}</div>`;
+  </div>`).join('') || '<p style="text-align:center;color:var(--muted);padding:30px">لا توجد فرق بعد.</p>'}</div>`;
 }
 
 /* ===== انضم ===== */
@@ -504,7 +497,7 @@ async function vPoints() {
     ${(packs || []).map(p => `<div class="pack">
       <div><div class="pts">${p.points} نقطة</div><div style="color:var(--muted);font-size:.75rem">${p.bonus_text || ''}</div></div>
       <div style="text-align:left"><b>${p.usdt_price} USDT</b><br><button class="btn sm" style="margin-top:6px" onclick="createPayment('${p.id}')">شراء</button></div>
-    </div>`).join('')}
+    </div>`).join('') || '<p style="color:var(--muted)">لا توجد حزم.</p>'}
   </div>`;
 }
 
