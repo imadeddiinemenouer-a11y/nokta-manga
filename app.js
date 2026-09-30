@@ -25,9 +25,112 @@ const STATIC_AGES = ['13+', '16+', '18+'];
 const STATIC_STATUS = ['مستمرة', 'متوقفة', 'منتهية'];
 const STATIC_GENRES = ['أكشن','فانتازيا','رومانسية','غموض','نظام','دراما','مغامرة','مدرسي','شونين','قوى خاصة','ناجٍ','مصاصين','سحر','مملكة','تاريخي','ارتقاء','رياضة','خيال','حياة يومية','جوسي','فنون قتالية','سينين','شوجو','إيسيكاي','ميكا','رعب','نفسي','عسكري','موسيقي'];
 
-const ICON_SUN = '<svg class="ico-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>';
-const ICON_MOON = '<svg class="ico-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>';
+// ============ تعريفات SVG مشتركة ============
+const SVG_DEFS = `
+<defs>
+  <linearGradient id="icoGold" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#f0d78a"/>
+    <stop offset="50%" stop-color="#c9a961"/>
+    <stop offset="100%" stop-color="#8b6f2f"/>
+  </linearGradient>
+  <linearGradient id="icoGoldV" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#e0c88a"/>
+    <stop offset="100%" stop-color="#8b6f2f"/>
+  </linearGradient>
+  <linearGradient id="icoRed" x1="0%" y1="0%" x2="100%" y2="100%">
+    <stop offset="0%" stop-color="#ff5a6b"/>
+    <stop offset="100%" stop-color="#b91c37"/>
+  </linearGradient>
+  <filter id="icoGlow" x="-50%" y="-50%" width="200%" height="200%">
+    <feGaussianBlur stdDeviation="1.2" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="icoShadow">
+    <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#000" flood-opacity=".5"/>
+  </filter>
+</defs>`;
 
+const ICONS = {
+  sun: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><circle cx="12" cy="12" r="4.5" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.5"/><g stroke="url(#icoGoldV)" stroke-width="1.8" stroke-linecap="butt"><line x1="12" y1="1.5" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22.5"/><line x1="3.6" y1="3.6" x2="5.7" y2="5.7"/><line x1="18.3" y1="18.3" x2="20.4" y2="20.4"/><line x1="1.5" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22.5" y2="12"/><line x1="3.6" y1="20.4" x2="5.7" y2="18.3"/><line x1="18.3" y1="5.7" x2="20.4" y2="3.6"/></g></g></svg>`,
+
+  moon: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M20.5 15.5A9 9 0 1 1 10.5 3.5a7 7 0 0 0 10 12z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/></g></svg>`,
+
+  bell: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M6 17V10a6 6 0 0 1 12 0v7z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><rect x="4" y="16.5" width="16" height="1.8" fill="url(#icoGoldV)"/><path d="M10.5 20.5a1.5 1.5 0 0 0 3 0z" fill="url(#icoGoldV)"/><circle cx="12" cy="4" r="1.3" fill="url(#icoRed)" filter="url(#icoGlow)"/></g></svg>`,
+
+  settings: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2l1.5 2.3 2.7-.3 1 2.5 2.5 1-.3 2.7L21.7 12l-2.3 1.5.3 2.7-2.5 1-1 2.5-2.7-.3L12 22l-1.5-2.3-2.7.3-1-2.5-2.5-1 .3-2.7L2.3 12l2.3-1.5-.3-2.7 2.5-1 1-2.5 2.7.3z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><circle cx="12" cy="12" r="3.2" fill="#0f1117" stroke="url(#icoRed)" stroke-width="1" filter="url(#icoGlow)"/></g></svg>`,
+
+  user: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><circle cx="12" cy="8" r="4.5" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M3 21c0-4.5 4-8 9-8s9 3.5 9 8z" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.6"/></g></svg>`,
+
+  menu: `<svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g stroke="url(#icoGoldV)" stroke-width="2.5" stroke-linecap="butt" filter="url(#icoShadow)"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></g></svg>`,
+
+  search: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="url(#icoGold)" stroke-width="2"/><circle cx="10.5" cy="10.5" r="6.5" fill="url(#icoGold)" opacity=".15"/><line x1="15.5" y1="15.5" x2="21" y2="21" stroke="url(#icoRed)" stroke-width="2.5" stroke-linecap="butt" filter="url(#icoGlow)"/></g></svg>`,
+
+  home: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2L2 11h3v11h14V11h3z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><rect x="9" y="13" width="6" height="9" fill="#0f1117" stroke="#8b6f2f" stroke-width="0.6"/></g></svg>`,
+
+  palette: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10c1 0 1.8-.7 1.8-1.6 0-.4-.2-.8-.4-1.1-.2-.3-.4-.6-.4-1 0-.9.8-1.6 1.7-1.6H17A5 5 0 0 0 22 11c0-5-4.5-9-10-9z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><circle cx="6.5" cy="12.5" r="1.3" fill="#b91c37"/><circle cx="9.5" cy="7.5" r="1.3" fill="#7c5cff"/><circle cx="15" cy="7.5" r="1.3" fill="#2ecc71"/><circle cx="18" cy="12.5" r="1.3" fill="#f5b942"/></g></svg>`,
+
+  book: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M2 4v15c0 1 1 2 2 2h6V6H4c-1 0-2-1-2-2z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M22 4v15c0 1-1 2-2 2h-6V6h6c1 0 2-1 2-2z" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.6"/><line x1="12" y1="4" x2="12" y2="21" stroke="#b91c37" stroke-width="0.8" filter="url(#icoGlow)"/></g></svg>`,
+
+  library: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><rect x="3" y="3" width="4.5" height="18" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.5"/><rect x="9" y="3" width="4.5" height="18" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.5"/><path d="M16 4.5l4 1-2.5 15-4-1z" fill="url(#icoRed)" stroke="#8b6f2f" stroke-width="0.5"/></g></svg>`,
+
+  shield: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2L3 6v6c0 5 4 9 9 10 5-1 9-5 9-10V6z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M12 7v9M8 12h8" stroke="#b91c37" stroke-width="1" filter="url(#icoGlow)"/></g></svg>`,
+
+  crown: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M2 18L4 8l4 3 4-7 4 7 4-3 2 10z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><rect x="2" y="18" width="20" height="3" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.5"/><circle cx="4" cy="8" r="1.2" fill="url(#icoRed)" filter="url(#icoGlow)"/><circle cx="12" cy="4" r="1.2" fill="url(#icoRed)" filter="url(#icoGlow)"/><circle cx="20" cy="8" r="1.2" fill="url(#icoRed)" filter="url(#icoGlow)"/></g></svg>`,
+
+  handshake: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M11 17l-4 4-6-6 5-5" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M13 7l4-4 6 6-5 5" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M9 15l3 3 3-3-3-3z" fill="url(#icoRed)" filter="url(#icoGlow)"/></g></svg>`,
+
+  fire: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-3 1-5-2 2-3 4-3 6a7 7 0 0 0 14 0c0-5-4-8-7-12z" fill="url(#icoRed)" stroke="#8b6f2f" stroke-width="0.5"/><path d="M12 10c.5 2 2 3 2 5a2 2 0 0 1-4 0c0-1 .5-1.5.5-2.5C9.5 13 9 14 9 15a3 3 0 0 0 6 0c0-2.5-2-4-3-5z" fill="url(#icoGold)" filter="url(#icoGlow)"/></g></svg>`,
+
+  lightning: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M13 2L3 14h7l-1 8 10-12h-7z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M13 2l-5 7h4l-2 5" stroke="#b91c37" stroke-width="0.8" fill="none" filter="url(#icoGlow)"/></g></svg>`,
+
+  heart: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 21L3 12l4-7 5 5 5-5 4 7z" fill="none" stroke="url(#icoGold)" stroke-width="2"/></g></svg>`,
+  heartFilled: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 21L3 12l4-7 5 5 5-5 4 7z" fill="url(#icoRed)" stroke="#8b6f2f" stroke-width="1" filter="url(#icoGlow)"/></g></svg>`,
+
+  lock: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><rect x="4" y="10" width="16" height="11" rx="1" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M8 10V6a4 4 0 0 1 8 0v4" fill="none" stroke="url(#icoGoldV)" stroke-width="2"/><circle cx="12" cy="15" r="1.5" fill="#0f1117"/></g></svg>`,
+  unlock: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><rect x="4" y="10" width="16" height="11" rx="1" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M8 10V6a4 4 0 0 1 7.5-2" fill="none" stroke="url(#icoGoldV)" stroke-width="2"/><circle cx="12" cy="15" r="1.5" fill="#0f1117"/></g></svg>`,
+
+  edit: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M3 21l4-1L20 7l-3-3L4 17z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M17 4l3 3-2 2-3-3z" fill="url(#icoRed)" filter="url(#icoGlow)"/></g></svg>`,
+
+  trash: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M3 6h18M9 3h6l1 3H8z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.5"/><path d="M5 6l1.5 15h11L19 6z" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.6"/><line x1="10" y1="10" x2="10" y2="18" stroke="#b91c37" stroke-width="1"/><line x1="14" y1="10" x2="14" y2="18" stroke="#b91c37" stroke-width="1"/></g></svg>`,
+
+  plus: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><line x1="12" y1="4" x2="12" y2="20" stroke="url(#icoGold)" stroke-width="3" stroke-linecap="butt"/><line x1="4" y1="12" x2="20" y2="12" stroke="url(#icoGold)" stroke-width="3" stroke-linecap="butt"/></g></svg>`,
+
+  cart: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M2 4h3l3 14h11l2-10H6" fill="none" stroke="url(#icoGold)" stroke-width="2"/><circle cx="9" cy="21" r="1.8" fill="url(#icoGold)"/><circle cx="19" cy="21" r="1.8" fill="url(#icoGold)"/></g></svg>`,
+
+  pen: `<svg viewBox="0 0 24 24" width="14" height="14" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M4 20l4-1L20 7l-3-3L5 16z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.5"/></g></svg>`,
+
+  list: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><circle cx="5" cy="6" r="1.8" fill="url(#icoGold)"/><circle cx="5" cy="12" r="1.8" fill="url(#icoGold)"/><circle cx="5" cy="18" r="1.8" fill="url(#icoGold)"/><line x1="10" y1="6" x2="21" y2="6" stroke="url(#icoGoldV)" stroke-width="2"/><line x1="10" y1="12" x2="21" y2="12" stroke="url(#icoGoldV)" stroke-width="2"/><line x1="10" y1="18" x2="21" y2="18" stroke="url(#icoGoldV)" stroke-width="2"/></g></svg>`,
+
+  message: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M2 4h20v14H8l-6 4z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M6 8h12M6 11h8" stroke="#8b6f2f" stroke-width="0.7"/></g></svg>`,
+
+  package: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2l10 5v10l-10 5-10-5V7z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M2 7l10 5 10-5M12 12v10" fill="none" stroke="#8b6f2f" stroke-width="0.7"/></g></svg>`,
+
+  dollar: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><circle cx="12" cy="12" r="10" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M12 4v16M16 7h-6a2.5 2.5 0 0 0 0 5h4a2.5 2.5 0 0 1 0 5H8" fill="none" stroke="#0f1117" stroke-width="1.8"/></g></svg>`,
+
+  folder: `<svg viewBox="0 0 24 24" width="48" height="48" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M2 4h7l3 3h10v13H2z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.8"/><path d="M2 9h20" stroke="#8b6f2f" stroke-width="0.6"/></g></svg>`,
+
+  check: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<path d="M4 12l6 6L20 6" fill="none" stroke="url(#icoGold)" stroke-width="3.5" stroke-linecap="butt" filter="url(#icoShadow)"/></svg>`,
+
+  x: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g stroke-linecap="butt" filter="url(#icoShadow)"><line x1="6" y1="6" x2="18" y2="18" stroke="url(#icoRed)" stroke-width="3"/><line x1="18" y1="6" x2="6" y2="18" stroke="url(#icoRed)" stroke-width="3"/></g></svg>`,
+
+  clock: `<svg viewBox="0 0 24 24" width="14" height="14" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><circle cx="12" cy="12" r="9" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M12 6v6l4 2" fill="none" stroke="#0f1117" stroke-width="1.8"/></g></svg>`,
+
+  alert: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2L1 22h22z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><line x1="12" y1="9" x2="12" y2="15" stroke="#b91c37" stroke-width="2" filter="url(#icoGlow)"/><circle cx="12" cy="18" r="1.2" fill="#b91c37" filter="url(#icoGlow)"/></g></svg>`,
+
+  arrowLeft: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M20 12H5M10 6l-6 6 6 6" fill="none" stroke="url(#icoGold)" stroke-width="2.5" stroke-linecap="butt" stroke-linejoin="miter"/></g></svg>`,
+  arrowRight: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M4 12h15M14 6l6 6-6 6" fill="none" stroke="url(#icoGold)" stroke-width="2.5" stroke-linecap="butt" stroke-linejoin="miter"/></g></svg>`,
+  arrowUp: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 20V5M6 10l6-6 6 6" fill="none" stroke="url(#icoGold)" stroke-width="2.5" stroke-linecap="butt" stroke-linejoin="miter"/></g></svg>`,
+
+  grid: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><rect x="3" y="3" width="7" height="7" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.5"/><rect x="14" y="3" width="7" height="7" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.5"/><rect x="3" y="14" width="7" height="7" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.5"/><rect x="14" y="14" width="7" height="7" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.5"/></g></svg>`,
+
+  sliders: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><line x1="4" y1="6" x2="20" y2="6" stroke="url(#icoGoldV)" stroke-width="2"/><line x1="4" y1="12" x2="20" y2="12" stroke="url(#icoGoldV)" stroke-width="2"/><line x1="4" y1="18" x2="20" y2="18" stroke="url(#icoGoldV)" stroke-width="2"/><circle cx="9" cy="6" r="2.5" fill="url(#icoGold)" stroke="#b91c37" stroke-width="0.6" filter="url(#icoGlow)"/><circle cx="15" cy="12" r="2.5" fill="url(#icoGold)" stroke="#b91c37" stroke-width="0.6" filter="url(#icoGlow)"/><circle cx="7" cy="18" r="2.5" fill="url(#icoGold)" stroke="#b91c37" stroke-width="0.6" filter="url(#icoGlow)"/></g></svg>`,
+
+  eye: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><circle cx="12" cy="12" r="3.5" fill="#0f1117" stroke="url(#icoRed)" stroke-width="1" filter="url(#icoGlow)"/></g></svg>`,
+
+  maximize: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g stroke="url(#icoGold)" stroke-width="2.5" stroke-linecap="butt" fill="none" filter="url(#icoShadow)"><path d="M8 3H3v5M21 8V3h-5M3 16v5h5M16 21h5v-5"/></g></svg>`,
+
+  alpha: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2L2 22h20z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M8 15h8M12 8l-2 7" stroke="#b91c37" stroke-width="1.2" fill="none" filter="url(#icoGlow)"/></g></svg>`
+};
 // ============ 2. الأدوات ============
 function toast(m) {
   const t = $('#toast');
@@ -63,9 +166,8 @@ function theme() {
   if (l) document.documentElement.setAttribute('data-theme', 'light');
   else document.documentElement.removeAttribute('data-theme');
   const b = $('#themeBtn');
-  if (b) b.innerHTML = ICON_SUN + ICON_MOON;
+  if (b) b.innerHTML = l ? ICONS.moon : ICONS.sun;
 }
-
 function toggleTheme() {
   localStorage.noktaTheme = localStorage.noktaTheme === 'light' ? 'dark' : 'light';
   theme();
@@ -75,7 +177,7 @@ theme();
 // ============ 3. التهيئة ============
 async function boot() {
   if (!sb) {
-    app.innerHTML = `<div class="panel"><h2>⚙️ إعداد Supabase مطلوب</h2><p style="color:var(--muted);line-height:2;margin-top:10px">انسخ <b>config.example.js</b> إلى <b>config.js</b> واملأ القيم.</p></div>`;
+    app.innerHTML = `<div class="panel"><h2>إعداد Supabase مطلوب</h2><p style="color:var(--muted);line-height:2;margin-top:10px">انسخ <b>config.example.js</b> إلى <b>config.js</b> واملأ القيم.</p></div>`;
     return;
   }
   const r = await sb.auth.getSession();
@@ -105,14 +207,14 @@ function refreshHeader() {
   const n = $('#notifBtn'); if (n) n.style.display = session ? 'flex' : 'none';
   const ab = $('#authBtn');
   if (ab) {
-    ab.style.background = session ? 'var(--grad)' : '';
-    ab.style.color = session ? '#fff' : '';
-    ab.style.borderColor = session ? 'transparent' : '';
+    ab.style.background = session ? 'var(--grad-gold)' : '';
+    ab.style.color = session ? '#1a1200' : '';
+    ab.style.borderColor = session ? 'var(--gold-dark)' : '';
   }
   const um = $('#userMini');
   if (um) um.innerHTML = session
-    ? `<span>👤</span><b>${esc(profile?.username || session.user.email)}</b>`
-    : `<span>👤</span><span>غير مسجل</span>`;
+    ? `<span>${ICONS.user}</span><b>${esc(profile?.username || session.user.email)}</b>`
+    : `<span>${ICONS.user}</span><span>غير مسجل</span>`;
   if (session) { loadBalance(); checkNotifications(); }
 }
 
@@ -139,7 +241,6 @@ async function signIn() {
   if (error) toast(error.message);
   else { toast('تم تسجيل الدخول'); route(); }
 }
-
 async function signUp() {
   const email = $('#email').value.trim();
   const password = $('#pass').value;
@@ -147,7 +248,6 @@ async function signUp() {
   const { error } = await sb.auth.signUp({ email, password });
   toast(error ? error.message : 'تم إنشاء الحساب');
 }
-
 async function signOut() {
   await sb.auth.signOut();
   toast('تم تسجيل الخروج');
@@ -161,30 +261,22 @@ async function fetchWorks(kind) {
   const { data, error } = await q;
   return error ? [] : data || [];
 }
-
 async function fetchFavorites() {
   if (!session) return [];
   const { data } = await sb.from('favorites').select('work_id');
   return (data || []).map(f => f.work_id);
 }
-
 async function isFavorite(workId) {
   if (!session) return false;
   const { data } = await sb.from('favorites')
-    .select('*')
-    .eq('user_id', session.user.id)
-    .eq('work_id', workId)
-    .maybeSingle();
+    .select('*').eq('user_id', session.user.id).eq('work_id', workId).maybeSingle();
   return !!data;
 }
-
 async function fetchLatestChapters(workId, limit = 4) {
   const { data } = await sb.from('chapters')
     .select('id, number, title, created_at')
-    .eq('work_id', workId)
-    .eq('published', true)
-    .order('number', { ascending: false })
-    .limit(limit);
+    .eq('work_id', workId).eq('published', true)
+    .order('number', { ascending: false }).limit(limit);
   return data || [];
 }
 
@@ -192,10 +284,10 @@ async function fetchLatestChapters(workId, limit = 4) {
 function cardHTML(w, isFav) {
   return `<div class="card" onclick="go('work','${w.id}')">
     <div class="cover" style="background:linear-gradient(140deg,${esc(w.grad_a||'#1a237e')},${esc(w.grad_b||'#4a148c')})">
-      ${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="${esc(w.title)}" loading="lazy">` : esc(w.emoji||'📖')}
+      ${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="${esc(w.title)}" loading="lazy">` : `<div style="font-size:2.5rem;opacity:.5">${ICONS.book}</div>`}
       <span class="age">${esc(w.age_rating||'13+')}</span>
       <span class="type">${esc(w.type)}</span>
-      ${isFav ? '<span class="fav-badge">❤️</span>' : ''}
+      ${isFav ? `<span class="fav-badge">${ICONS.heartFilled}</span>` : ''}
     </div>
     <div class="cinfo">
       <h3>${esc(w.title)}</h3>
@@ -208,7 +300,7 @@ function popularItemHTML(w, i) {
   return `<div class="popular-item" onclick="go('work','${w.id}')">
     <div class="popular-num">${i+1}</div>
     <div class="popular-cover" style="background:linear-gradient(140deg,${esc(w.grad_a||'#1a237e')},${esc(w.grad_b||'#4a148c')})">
-      ${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="" loading="lazy">` : esc(w.emoji||'📖')}
+      ${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="" loading="lazy">` : `<div style="font-size:1.5rem;opacity:.5">${ICONS.book}</div>`}
     </div>
     <div class="popular-info">
       <h3>${esc(w.title)}</h3>
@@ -233,7 +325,7 @@ async function releaseCardHTML(w) {
       <div class="chapters-mini">${chaptersHTML}</div>
     </div>
     <div class="release-cover" style="background:linear-gradient(140deg,${esc(w.grad_a||'#1a237e')},${esc(w.grad_b||'#4a148c')})" onclick="go('work','${w.id}')">
-      ${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="${esc(w.title)}" loading="lazy">` : esc(w.emoji||'📖')}
+      ${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="${esc(w.title)}" loading="lazy">` : `<div style="font-size:2rem;opacity:.5">${ICONS.book}</div>`}
       <span class="type-badge">${esc(w.type)}</span>
     </div>
   </div>`;
@@ -251,7 +343,7 @@ async function vHome() {
   return `
   <div class="search-wrap">
     <div class="search-box" onclick="go('search','')">
-      <span class="search-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></span>
+      <span class="search-icon">${ICONS.search}</span>
       <input placeholder="ابحث عن مانهوا أو مانجا..." readonly>
     </div>
   </div>
@@ -261,16 +353,16 @@ async function vHome() {
       <h1>اقرأ أحدث <span>المانهوا والمانجا</span> بالعربية</h1>
       <p>منصة احترافية للفصول والفرق والقراءة، مع حسابات وصلاحيات ونظام نقاط محفوظ في الخادم.</p>
       <div class="hero-actions">
-        <button class="btn" onclick="go('comics')">تصفح الكل ←</button>
+        <button class="btn" onclick="go('comics')">تصفح الكل</button>
         <button class="btn ghost" onclick="go('novels')">الروايات</button>
       </div>
     </div>
   </div>
-  <div class="sec-title"><span class="line"></span>🔥 الأكثر شعبية</div>
-  <div class="popular-list">${top.map((w,i)=>popularItemHTML(w,i)).join('') || '<div class="empty"><span class="empty-icon">📚</span><p>لا توجد أعمال بعد</p></div>'}</div>
-  <div class="sec-title"><span class="line"></span>📖 أحدث الإصدارات</div>
-  <div class="releases-list">${releasesHTML || '<div class="empty"><span class="empty-icon">📖</span><p>لا توجد إصدارات</p></div>'}</div>
-  <div class="sec-title"><span class="line"></span>⚡ شائع اليوم</div>
+  <div class="sec-title"><span class="line"></span>${ICONS.fire} الأكثر شعبية</div>
+  <div class="popular-list">${top.map((w,i)=>popularItemHTML(w,i)).join('') || `<div class="empty"><span class="empty-icon">${ICONS.library}</span><p>لا توجد أعمال بعد</p></div>`}</div>
+  <div class="sec-title"><span class="line"></span>${ICONS.book} أحدث الإصدارات</div>
+  <div class="releases-list">${releasesHTML || `<div class="empty"><span class="empty-icon">${ICONS.book}</span><p>لا توجد إصدارات</p></div>`}</div>
+  <div class="sec-title"><span class="line"></span>${ICONS.lightning} شائع اليوم</div>
   <div class="grid">${today.map(w=>cardHTML(w,favs.includes(w.id))).join('')}</div>`;
 }
 
@@ -280,30 +372,30 @@ async function vBrowse(kind) {
   fState = { types: [], genres: [], ages: [], status: [] };
   browseSort = 'new';
 
-  return `<div class="sec-title"><span class="line"></span>${kind==='comic'?'🎨 جميع الأعمال':'📖 الروايات'}</div>
+  return `<div class="sec-title"><span class="line"></span>${kind==='comic' ? ICONS.palette + ' جميع الأعمال' : ICONS.book + ' الروايات'}</div>
   <div class="search-wrap"><div class="search-box" onclick="go('search','')">
-    <span class="search-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></span>
+    <span class="search-icon">${ICONS.search}</span>
     <input placeholder="ابحث..." readonly>
   </div></div>
   <div class="filters-row">
     <div class="filter-wrap">
       <button class="filter-select" onclick="toggleDropdown('ddType')">
-        <div style="text-align:right"><span class="label">النوع</span><span class="value" id="vType">الكل</span></div><span class="chev">⌄</span>
+        <div style="text-align:right"><span class="label">النوع</span><span class="value" id="vType">الكل</span></div><span class="chev">${ICONS.arrowUp}</span>
       </button><div class="dropdown" id="ddType"></div>
     </div>
     <div class="filter-wrap">
       <button class="filter-select" onclick="toggleDropdown('ddAge')">
-        <div style="text-align:right"><span class="label">العمر</span><span class="value" id="vAge">الكل</span></div><span class="chev">⌄</span>
+        <div style="text-align:right"><span class="label">العمر</span><span class="value" id="vAge">الكل</span></div><span class="chev">${ICONS.arrowUp}</span>
       </button><div class="dropdown" id="ddAge"></div>
     </div>
     <div class="filter-wrap filter-full">
       <button class="filter-select" onclick="toggleDropdown('ddStatus')">
-        <div style="text-align:right"><span class="label">الحالة</span><span class="value" id="vStatus">الكل</span></div><span class="chev">⌄</span>
+        <div style="text-align:right"><span class="label">الحالة</span><span class="value" id="vStatus">الكل</span></div><span class="chev">${ICONS.arrowUp}</span>
       </button><div class="dropdown" id="ddStatus"></div>
     </div>
     <div class="filter-wrap filter-full">
       <button class="filter-select" onclick="toggleDropdown('ddGen')">
-        <div style="text-align:right"><span class="label">التصنيفات (اختيار متعدد)</span><span class="value" id="vGen">الكل</span></div><span class="chev">⌄</span>
+        <div style="text-align:right"><span class="label">التصنيفات (اختيار متعدد)</span><span class="value" id="vGen">الكل</span></div><span class="chev">${ICONS.arrowUp}</span>
       </button><div class="dropdown" id="ddGen"></div>
     </div>
   </div>
@@ -311,7 +403,7 @@ async function vBrowse(kind) {
   <div class="sort-bar">
     <p class="result-count" id="resultCount" style="margin:0"></p>
     <button class="sort-toggle" id="sortBtn" onclick="toggleSort()">
-      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+      ${ICONS.sliders}
       <span id="sortLabel">الأحدث أولاً</span>
     </button>
   </div>
@@ -325,7 +417,6 @@ function toggleSort() {
   if (lbl) lbl.textContent = browseSort === 'new' ? 'الأحدث أولاً' : browseSort === 'old' ? 'الأقدم أولاً' : 'الأعلى تقييماً';
   drawBrowse();
 }
-
 function toggleDropdown(id) {
   const t = document.getElementById(id);
   if (!t) return;
@@ -345,7 +436,6 @@ document.addEventListener('click', e => {
     $$('.filter-select').forEach(b => b.classList.remove('active'));
   }
 });
-
 function buildDropdownContent(id) {
   const el = document.getElementById(id);
   if (!el) return;
@@ -374,8 +464,7 @@ function closeDropdowns() {
 function toggleFilter(k, v) {
   const a = fState[k];
   const i = a.indexOf(v);
-  if (i >= 0) a.splice(i, 1);
-  else a.push(v);
+  if (i >= 0) a.splice(i, 1); else a.push(v);
   drawBrowse();
 }
 function clearFilter(k) { fState[k] = []; drawBrowse(); }
@@ -405,13 +494,13 @@ function drawBrowse() {
       ...fState.status.map(v=>({k:'status',v})),
       ...fState.genres.map(v=>({k:'genres',v}))
     ];
-    chips.innerHTML = all.map(x => `<span class="chip-x"><b>${esc(x.v)}</b><button onclick="toggleFilter('${x.k}','${esc(x.v)}')">×</button></span>`).join('');
+    chips.innerHTML = all.map(x => `<span class="chip-x"><b>${esc(x.v)}</b><button onclick="toggleFilter('${x.k}','${esc(x.v)}')">${ICONS.x}</button></span>`).join('');
   }
   set('resultCount', `تم العثور على ${list.length} عمل`);
   const grid = document.getElementById('browseGrid');
   if (grid) grid.innerHTML = list.length
     ? list.map(w => cardHTML(w, false)).join('')
-    : '<div class="empty" style="grid-column:1/-1"><span class="empty-icon">🔍</span><p>لا توجد نتائج</p></div>';
+    : `<div class="empty" style="grid-column:1/-1"><span class="empty-icon">${ICONS.search}</span><p>لا توجد نتائج</p></div>`;
   $$('.dropdown.show').forEach(d => buildDropdownContent(d.id));
 }
 
@@ -440,17 +529,17 @@ async function vWork(id) {
       </div>
       <div class="comment-content">${esc(c.content)}</div>
       <div class="comment-actions">
-        <button class="${c.is_liked?'liked':''}" onclick="likeComment('${c.id}')">❤️ ${c.likes||0}</button>
+        <button class="${c.is_liked?'liked':''}" onclick="likeComment('${c.id}')">${c.is_liked?ICONS.heartFilled:ICONS.heart} ${c.likes||0}</button>
       </div>
     </div>`).join('') || '<p style="text-align:center;color:var(--muted);padding:20px;font-size:.8rem">لا توجد تعليقات بعد.</p>';
 
   const progressHTML = progress?.has_progress && session
-    ? `<button class="btn ghost" onclick="go('read','${progress.chapter_id}')">📖 متابعة القراءة</button>`
+    ? `<button class="btn ghost" onclick="go('read','${progress.chapter_id}')">${ICONS.book} متابعة القراءة</button>`
     : '';
 
   return `<div class="work-head">
     <div class="work-cover" style="background:linear-gradient(140deg,${esc(w.grad_a||'#1a237e')},${esc(w.grad_b||'#4a148c')})">
-      ${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="${esc(w.title)}">` : esc(w.emoji||'📖')}
+      ${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="${esc(w.title)}">` : `<div style="font-size:3rem;opacity:.5">${ICONS.book}</div>`}
     </div>
     <div class="work-info">
       <h1>${esc(w.title)}</h1>
@@ -463,21 +552,21 @@ async function vWork(id) {
       <div class="rating-info">★ ${avg} (${cnt} تقييم)</div>
       <div class="rating-stars">${starsHTML}</div>
       <p class="work-syn">${esc(w.synopsis||'')}</p>
-      ${w.author ? `<p class="work-author">✍️ الكاتب: <b>${esc(w.author)}</b></p>` : ''}
+      ${w.author ? `<p class="work-author">${ICONS.pen} الكاتب: <b>${esc(w.author)}</b></p>` : ''}
       <div class="work-actions">
-        <button class="btn ${isFav?'fav-btn active':'ghost'}" onclick="toggleFavorite('${id}')">${isFav?'❤️ في المفضلة':'🤍 أضف للمفضلة'}</button>
+        <button class="btn ${isFav?'fav-btn active':'ghost'}" onclick="toggleFavorite('${id}')">${isFav? ICONS.heartFilled + ' في المفضلة' : ICONS.heart + ' أضف للمفضلة'}</button>
         ${progressHTML}
       </div>
     </div>
   </div>
-  <div class="sec-title"><span class="line"></span>📑 الفصول (${(chs||[]).length})</div>
+  <div class="sec-title"><span class="line"></span>${ICONS.list} الفصول (${(chs||[]).length})</div>
   <div class="notice">الفصول المقفلة تُفتح بالنقاط. التحقق يتم في قاعدة البيانات.</div>
   ${(chs||[]).map(ch => `<div class="ch-item ${ch.is_locked?'locked':''}">
     <div class="num">الفصل ${ch.number}</div>
-    <div class="sub">${ch.is_locked?'🔒 مقفل':'🆓 مجاني'} ${esc(ch.title||'')}</div>
+    <div class="sub">${ch.is_locked? ICONS.lock + ' مقفل' : ICONS.unlock + ' مجاني'} ${esc(ch.title||'')}</div>
     <button class="btn sm ${ch.is_locked?'gold':'ghost'}" onclick="readChapter('${ch.id}')">${ch.is_locked?'فتح':'قراءة'}</button>
-  </div>`).join('') || '<div class="empty"><span class="empty-icon">📑</span><p>لا توجد فصول بعد</p></div>'}
-  <div class="sec-title"><span class="line"></span>💬 التعليقات (${(comments||[]).length})</div>
+  </div>`).join('') || `<div class="empty"><span class="empty-icon">${ICONS.list}</span><p>لا توجد فصول بعد</p></div>`}
+  <div class="sec-title"><span class="line"></span>${ICONS.message} التعليقات (${(comments||[]).length})</div>
   ${session
     ? `<div class="panel"><div class="field"><textarea id="commentInput" placeholder="اكتب تعليقاً..." style="min-height:80px"></textarea></div><button class="btn" onclick="postComment('${id}')">نشر التعليق</button></div>`
     : '<div class="notice">سجّل الدخول للتعليق.</div>'}
@@ -489,13 +578,13 @@ async function toggleFavorite(workId) {
   const isFav = await isFavorite(workId);
   if (isFav) await sb.from('favorites').delete().eq('user_id', session.user.id).eq('work_id', workId);
   else await sb.from('favorites').insert({ user_id: session.user.id, work_id: workId });
-  toast(isFav ? 'تم الحذف من المفضلة' : '❤️ تم الإضافة للمفضلة');
+  toast(isFav ? 'تم الحذف من المفضلة' : 'تم الإضافة للمفضلة');
   route();
 }
 async function rateWork(workId, score) {
   if (!session) return go('auth');
   await sb.from('ratings').upsert({ user_id: session.user.id, work_id: workId, score });
-  toast('⭐ تم التقييم');
+  toast('تم التقييم');
   route();
 }
 async function postComment(workId) {
@@ -505,16 +594,13 @@ async function postComment(workId) {
   if (!content) return toast('اكتب تعليقاً');
   const { error } = await sb.from('comments').insert({ user_id: session.user.id, work_id: workId, content });
   if (error) return toast(error.message);
-  toast('✅ تم النشر');
+  toast('تم النشر');
   route();
 }
 async function likeComment(commentId) {
   if (!session) return go('auth');
   const { data } = await sb.from('comment_likes')
-    .select('*')
-    .eq('user_id', session.user.id)
-    .eq('comment_id', commentId)
-    .maybeSingle();
+    .select('*').eq('user_id', session.user.id).eq('comment_id', commentId).maybeSingle();
   if (data) await sb.from('comment_likes').delete().eq('user_id', session.user.id).eq('comment_id', commentId);
   else await sb.from('comment_likes').insert({ user_id: session.user.id, comment_id: commentId });
   route();
@@ -522,7 +608,7 @@ async function likeComment(commentId) {
 async function readChapter(id) {
   const { data, error } = await sb.rpc('can_read_chapter', { p_chapter_id: id });
   if (error) return toast(error.message);
-  if (!data?.allowed) return toast('🪙 هذا الفصل مقفل');
+  if (!data?.allowed) return toast('هذا الفصل مقفل');
   go('read', id);
 }
 
@@ -534,8 +620,7 @@ async function vReader(id) {
 
   const { data: allChs } = await sb.from('chapters')
     .select('id, number, title')
-    .eq('work_id', ch.work_id)
-    .eq('published', true)
+    .eq('work_id', ch.work_id).eq('published', true)
     .order('number', { ascending: true });
 
   const chapters = allChs || [];
@@ -557,28 +642,24 @@ async function vReader(id) {
   }
 
   const isFav = await isFavorite(ch.work_id);
+  const isLight = localStorage.noktaTheme === 'light';
 
   return `<div class="reader-bar">
-    <button class="btn sm ghost" onclick="go('work','${ch.work_id}')">→ رجوع</button>
+    <button class="btn sm ghost" onclick="go('work','${ch.work_id}')">${ICONS.arrowRight} رجوع</button>
     <div class="reader-title">${esc(ch.work_title)} — الفصل ${ch.number}</div>
     <div class="reader-tools">
-      <button class="reader-tool-btn" onclick="toggleReaderWidth()" title="عرض أوسع">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4h16v16H4z"/><path d="M9 4v16M15 4v16"/></svg>
-      </button>
-      <button class="reader-tool-btn" onclick="toggleFavorite('${ch.work_id}')" title="المفضلة" style="${isFav?'color:var(--accent)':''}">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="${isFav?'currentColor':'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
-      </button>
-      <button class="reader-tool-btn" onclick="toggleTheme()" title="الوضع الليلي/النهاري">${ICON_SUN}${ICON_MOON}</button>
+      <button class="reader-tool-btn" onclick="toggleReaderWidth()" title="عرض أوسع">${ICONS.maximize}</button>
+      <button class="reader-tool-btn" onclick="toggleFavorite('${ch.work_id}')" title="المفضلة" style="${isFav?'color:var(--red)':''}">${isFav?ICONS.heartFilled:ICONS.heart}</button>
+      <button class="reader-tool-btn" onclick="toggleTheme()" title="الوضع الليلي/النهاري">${isLight?ICONS.moon:ICONS.sun}</button>
     </div>
   </div>
   <div class="reader-body ${readerWide?'wide':''}" id="readerBody">${body}</div>
   <div class="reader-nav">
-    <button onclick="${prevCh ? `go('read','${prevCh.id}')` : 'return false'}" ${!prevCh ? 'disabled style="opacity:.4;cursor:not-allowed"' : ''}>← السابق ${prevCh ? `(${prevCh.number})` : ''}</button>
-    <button onclick="go('work','${ch.work_id}')" style="flex:0.7">📑 كل الفصول</button>
-    <button onclick="${nextCh ? `go('read','${nextCh.id}')` : 'return false'}" ${!nextCh ? 'disabled style="opacity:.4;cursor:not-allowed"' : ''}>التالي ${nextCh ? `(${nextCh.number})` : ''} →</button>
+    <button onclick="${prevCh ? `go('read','${prevCh.id}')` : 'return false'}" ${!prevCh ? 'disabled style="opacity:.4;cursor:not-allowed"' : ''}>${ICONS.arrowRight} السابق ${prevCh ? `(${prevCh.number})` : ''}</button>
+    <button onclick="go('work','${ch.work_id}')" style="flex:0.7">${ICONS.list} كل الفصول</button>
+    <button onclick="${nextCh ? `go('read','${nextCh.id}')` : 'return false'}" ${!nextCh ? 'disabled style="opacity:.4;cursor:not-allowed"' : ''}>التالي ${nextCh ? `(${nextCh.number})` : ''} ${ICONS.arrowLeft}</button>
   </div>`;
 }
-
 function toggleReaderWidth() {
   readerWide = !readerWide;
   const b = document.getElementById('readerBody');
@@ -587,7 +668,7 @@ function toggleReaderWidth() {
 
 // ============ 10. المكتبة والإشعارات ============
 async function vLibrary() {
-  if (!session) return `<div class="empty" style="padding:80px 20px"><span class="empty-icon">📚</span><p>سجّل الدخول لعرض مكتبتك</p><button class="btn" style="margin-top:20px" onclick="go('auth')">تسجيل الدخول</button></div>`;
+  if (!session) return `<div class="empty" style="padding:80px 20px"><span class="empty-icon">${ICONS.library}</span><p>سجّل الدخول لعرض مكتبتك</p><button class="btn" style="margin-top:20px" onclick="go('auth')">تسجيل الدخول</button></div>`;
   const { data: favs } = await sb.from('favorites').select('work_id, created_at, works(*)').eq('user_id', session.user.id).order('created_at', { ascending: false });
   const { data: progressList } = await sb.from('reading_progress').select('work_id, updated_at, works(*), chapters(number)').eq('user_id', session.user.id).order('updated_at', { ascending: false });
   const favHTML = (favs||[]).map(f => f.works ? cardHTML(f.works, true) : '').join('');
@@ -597,51 +678,51 @@ async function vLibrary() {
       <div class="release-info">
         <h3>${esc(p.works.title)}</h3>
         <div class="release-status">آخر قراءة: الفصل ${p.chapters?.number||'?'}</div>
-        <div class="chapters-mini"><div class="chapter-mini" onclick="go('work','${p.work_id}')"><span>📖 متابعة القراءة</span><span class="time">${timeAgo(p.updated_at)}</span></div></div>
+        <div class="chapters-mini"><div class="chapter-mini" onclick="go('work','${p.work_id}')"><span>${ICONS.book} متابعة القراءة</span><span class="time">${timeAgo(p.updated_at)}</span></div></div>
       </div>
-      <div class="release-cover" onclick="go('work','${p.work_id}')">${p.works.cover_url ? `<img src="${esc(p.works.cover_url)}" alt="">` : '📖'}</div>
+      <div class="release-cover" onclick="go('work','${p.work_id}')">${p.works.cover_url ? `<img src="${esc(p.works.cover_url)}" alt="">` : ICONS.book}</div>
     </div>`;
   }).join('');
-  return `<div class="sec-title"><span class="line"></span>📚 مكتبتي</div>
+  return `<div class="sec-title"><span class="line"></span>${ICONS.library} مكتبتي</div>
   <div class="tabs">
-    <button class="tab ${libraryTab==='favorites'?'on':''}" onclick="libraryTab='favorites';route()">❤️ المفضلة (${(favs||[]).length})</button>
-    <button class="tab ${libraryTab==='progress'?'on':''}" onclick="libraryTab='progress';route()">📖 سجل القراءة (${(progressList||[]).length})</button>
+    <button class="tab ${libraryTab==='favorites'?'on':''}" onclick="libraryTab='favorites';route()">${ICONS.heart} المفضلة (${(favs||[]).length})</button>
+    <button class="tab ${libraryTab==='progress'?'on':''}" onclick="libraryTab='progress';route()">${ICONS.book} سجل القراءة (${(progressList||[]).length})</button>
   </div>
   ${libraryTab==='favorites'
-    ? (favHTML ? `<div class="grid">${favHTML}</div>` : '<div class="empty"><span class="empty-icon">🤍</span><p>لا توجد أعمال في المفضلة</p></div>')
-    : (progHTML || '<div class="empty"><span class="empty-icon">📖</span><p>لا يوجد سجل قراءة</p></div>')}`;
+    ? (favHTML ? `<div class="grid">${favHTML}</div>` : `<div class="empty"><span class="empty-icon">${ICONS.heart}</span><p>لا توجد أعمال في المفضلة</p></div>`)
+    : (progHTML || `<div class="empty"><span class="empty-icon">${ICONS.book}</span><p>لا يوجد سجل قراءة</p></div>`)}`;
 }
 
 async function vNotifications() {
-  if (!session) return `<div class="empty" style="padding:80px 20px"><span class="empty-icon">🔔</span><p>سجّل الدخول لعرض الإشعارات</p><button class="btn" style="margin-top:20px" onclick="go('auth')">تسجيل الدخول</button></div>`;
+  if (!session) return `<div class="empty" style="padding:80px 20px"><span class="empty-icon">${ICONS.bell}</span><p>سجّل الدخول لعرض الإشعارات</p><button class="btn" style="margin-top:20px" onclick="go('auth')">تسجيل الدخول</button></div>`;
   const { data } = await sb.from('notifications').select('*, works(title), chapters(number)').eq('user_id', session.user.id).order('created_at', { ascending: false }).limit(50);
   await sb.from('notifications').update({ is_read: true }).eq('user_id', session.user.id).eq('is_read', false);
   checkNotifications();
   const html = (data||[]).map(n => `<div class="notif-item ${n.is_read?'':'unread'}" onclick="${n.work_id ? `go('work','${n.work_id}')` : ''}">
-    <div class="notif-icon">🔔</div>
+    <div class="notif-icon">${ICONS.bell}</div>
     <div class="notif-content">
       <p>${esc(n.message || `تم نشر فصل جديد${n.chapters?.number?` (${n.chapters.number})`:''} من ${n.works?.title||''}`)}</p>
       <time>${timeAgo(n.created_at)}</time>
     </div>
   </div>`).join('');
-  return `<div class="sec-title"><span class="line"></span>🔔 الإشعارات</div>
-  ${html || '<div class="empty"><span class="empty-icon">🔕</span><p>لا توجد إشعارات</p></div>'}`;
+  return `<div class="sec-title"><span class="line"></span>${ICONS.bell} الإشعارات</div>
+  ${html || `<div class="empty"><span class="empty-icon">${ICONS.bell}</span><p>لا توجد إشعارات</p></div>`}`;
 }
 
 // ============ 11. الفرق والانضمام ============
 async function vTeams() {
   const { data } = await sb.from('teams').select('*').eq('published', true).order('name');
-  return `<div class="sec-title"><span class="line"></span>🛡️ فرق الترجمة</div>
+  return `<div class="sec-title"><span class="line"></span>${ICONS.shield} فرق الترجمة</div>
   <div class="notice">يمكن لكل فريق إدارة أعماله وفصوله.</div>
   <div class="grid2">${(data||[]).map(t=>`<div class="team-card">
-    <h3>${esc(t.name)}</h3>
+    <h3>${ICONS.shield} ${esc(t.name)}</h3>
     <p style="color:var(--muted);line-height:1.8;font-size:.85rem">${esc(t.description||'')}</p>
     ${t.support_wallet ? `<div class="wallet-box">${esc(t.support_wallet)}</div><button class="btn sm" onclick="copyTxt('${esc(t.support_wallet)}')">نسخ</button>` : ''}
-  </div>`).join('') || '<div class="empty" style="grid-column:1/-1"><span class="empty-icon">🛡️</span><p>لا توجد فرق بعد</p></div>'}</div>`;
+  </div>`).join('') || `<div class="empty" style="grid-column:1/-1"><span class="empty-icon">${ICONS.shield}</span><p>لا توجد فرق بعد</p></div>`}</div>`;
 }
 
 async function vJoin() {
-  return `<div class="sec-title"><span class="line"></span>🤝 انضم كمساعد</div>
+  return `<div class="sec-title"><span class="line"></span>${ICONS.handshake} انضم كمساعد</div>
   <div class="notice">أرسل طلبك؛ سيظهر للمشرفين في لوحة الإدارة.</div>
   <div class="panel" style="max-width:650px">
     <div class="field"><label>الاسم</label><input id="jName"></div>
@@ -664,13 +745,13 @@ async function submitJoin() {
   };
   if (!p.name || !p.contact) return toast('أكمل الحقول');
   const { error } = await sb.from('join_requests').insert({ user_id: session.user.id, ...p });
-  toast(error ? error.message : '✅ تم الإرسال');
+  toast(error ? error.message : 'تم الإرسال');
   if (!error) route();
 }
 
 // ============ 12. المصادقة والنقاط والبحث ============
 async function vAuth() {
-  return `<div class="sec-title"><span class="line"></span>🔐 حسابك</div>
+  return `<div class="sec-title"><span class="line"></span>${ICONS.user} حسابك</div>
   <div class="panel" style="max-width:420px;margin:auto">
     ${session
       ? `<p style="text-align:center;margin-bottom:16px">مسجل الدخول: <b>${esc(profile?.username||session.user.email)}</b></p>
@@ -680,26 +761,25 @@ async function vAuth() {
         <button class="btn" style="width:100%;margin-bottom:10px" onclick="signIn()">تسجيل الدخول</button>
         <div style="text-align:center;font-size:.8rem">
           <span style="color:var(--muted)">ليس لديك حساب؟ </span>
-          <a onclick="signUp()" style="color:var(--accent);font-weight:800;cursor:pointer">إنشاء حساب جديد</a>
+          <a onclick="signUp()" style="color:var(--red-light);font-weight:800;cursor:pointer">إنشاء حساب جديد</a>
         </div>`}
   </div>`;
 }
 
 async function vPoints() {
-  if (!session) return `<div class="empty" style="padding:80px 20px"><span class="empty-icon">👑</span><p>سجّل الدخول لإدارة رصيدك</p><button class="btn" style="margin-top:20px" onclick="go('auth')">تسجيل الدخول</button></div>`;
+  if (!session) return `<div class="empty" style="padding:80px 20px"><span class="empty-icon">${ICONS.crown}</span><p>سجّل الدخول لإدارة رصيدك</p><button class="btn" style="margin-top:20px" onclick="go('auth')">تسجيل الدخول</button></div>`;
   const { data } = await sb.rpc('get_my_balance');
   const balance = data?.balance || 0;
   const { data: packs } = await sb.from('point_packs').select('*').eq('active', true).order('sort_order');
-  return `<div class="sec-title"><span class="line"></span>👑 رصيدك: ${balance} نقطة</div>
+  return `<div class="sec-title"><span class="line"></span>${ICONS.crown} رصيدك: ${balance} نقطة</div>
   <div class="notice">شراء النقاط هنا ينشئ طلب دفع. لن تتم إضافة النقاط حتى يؤكد المشرف.</div>
-  <div class="panel" style="max-width:600px"><h3 style="margin-bottom:14px">🛒 الحزم</h3>
+  <div class="panel" style="max-width:600px"><h3 style="margin-bottom:14px">${ICONS.cart} الحزم</h3>
     ${(packs||[]).map(p=>`<div class="pack">
       <div><div class="pts">${p.points} نقطة</div><div style="color:var(--muted);font-size:.75rem">${p.bonus_text||''}</div></div>
       <div style="text-align:left"><b>${p.usdt_price} USDT</b><br><button class="btn sm" style="margin-top:6px" onclick="createPayment('${p.id}')">شراء</button></div>
     </div>`).join('') || '<p style="color:var(--muted)">لا توجد حزم.</p>'}
   </div>`;
 }
-
 async function createPayment(packId) {
   const { data, error } = await sb.rpc('create_payment_request', { p_pack_id: packId });
   if (error) toast(error.message);
@@ -709,16 +789,16 @@ async function createPayment(packId) {
 async function vSearch(q) {
   const { data } = await sb.from('works').select('*').eq('published', true).ilike('title', `%${q||''}%`);
   return `<div class="search-wrap"><div class="search-box">
-    <span class="search-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></span>
+    <span class="search-icon">${ICONS.search}</span>
     <input id="searchInput" placeholder="ابحث..." value="${esc(q||'')}" onkeydown="if(event.key==='Enter')go('search',this.value)">
   </div></div>
   <p class="result-count">نتائج: ${(data||[]).length}</p>
-  <div class="grid">${(data||[]).map(w=>cardHTML(w,false)).join('') || '<div class="empty" style="grid-column:1/-1"><span class="empty-icon">🔍</span><p>لا نتائج</p></div>'}</div>`;
+  <div class="grid">${(data||[]).map(w=>cardHTML(w,false)).join('') || `<div class="empty" style="grid-column:1/-1"><span class="empty-icon">${ICONS.search}</span><p>لا نتائج</p></div>`}</div>`;
 }
 
 // ============ 13. لوحة الإدارة ============
 async function vAdmin() {
-  if (profile?.role !== 'admin') return `<div class="panel"><h2>⛔ غير مصرح</h2></div>`;
+  if (profile?.role !== 'admin') return `<div class="panel"><h2>${ICONS.alert} غير مصرح</h2></div>`;
   const [{ count: users }, { count: works }, { count: joins }, { count: payments }] = await Promise.all([
     sb.from('profiles').select('*', { count: 'exact', head: true }),
     sb.from('works').select('*', { count: 'exact', head: true }),
@@ -730,14 +810,14 @@ async function vAdmin() {
   const { data: ps } = await sb.from('payment_requests').select('id,reference,point_packs(points,usdt_price),profiles(username)').eq('status', 'pending');
   const { data: js } = await sb.from('join_requests').select('id,name,contact,role').eq('status', 'pending');
 
-  return `<div class="sec-title"><span class="line"></span>🛠️ لوحة الإدارة</div>
+  return `<div class="sec-title"><span class="line"></span>${ICONS.settings} لوحة الإدارة</div>
   <div class="admin-grid">
     <div class="stat">المستخدمون<b>${users||0}</b></div>
     <div class="stat">الأعمال<b>${works||0}</b></div>
     <div class="stat">طلبات<b>${joins||0}</b></div>
     <div class="stat">دفعات<b>${payments||0}</b></div>
   </div>
-  <div class="sec-title"><span class="line"></span>➕ إضافة عمل</div>
+  <div class="sec-title"><span class="line"></span>${ICONS.plus} إضافة عمل</div>
   <div class="panel">
     <div class="field"><label>العنوان</label><input id="awTitle"></div>
     <div class="field"><label>النوع</label><select id="awType"><option>مانهوا</option><option>مانجا</option><option>مانها</option><option>رواية</option><option>كوميكس</option></select></div>
@@ -750,18 +830,18 @@ async function vAdmin() {
     <div class="field"><label>الملخص</label><textarea id="awSyn"></textarea></div>
     <button class="btn" onclick="adminAddWork()">حفظ</button>
   </div>
-  <div class="sec-title"><span class="line"></span>📚 إدارة الأعمال (${(ws||[]).length})</div>
+  <div class="sec-title"><span class="line"></span>${ICONS.library} إدارة الأعمال (${(ws||[]).length})</div>
   <div class="panel">
     ${(ws||[]).map(w=>`<div class="manage-item">
-      <div class="manage-cover">${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="">` : '📖'}</div>
+      <div class="manage-cover">${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="">` : ICONS.book}</div>
       <div class="manage-info"><h4>${esc(w.title)}</h4><p>${esc(w.type)}</p></div>
       <div class="manage-actions">
-        <button class="btn-edit" onclick="editWork('${w.id}')" title="تعديل">✏️</button>
-        <button class="btn-del" onclick="deleteWork('${w.id}','${esc(w.title)}')" title="حذف">🗑️</button>
+        <button class="btn-edit" onclick="editWork('${w.id}')" title="تعديل">${ICONS.edit}</button>
+        <button class="btn-del" onclick="deleteWork('${w.id}','${esc(w.title)}')" title="حذف">${ICONS.trash}</button>
       </div>
     </div>`).join('') || '<p style="text-align:center;color:var(--muted);padding:20px">لا توجد أعمال.</p>'}
   </div>
-  <div class="sec-title"><span class="line"></span>📦 الرفع الجماعي للفصول</div>
+  <div class="sec-title"><span class="line"></span>${ICONS.package} الرفع الجماعي للفصول</div>
   <div class="panel">
     <div class="notice">
       <b>طريقة العمل:</b><br>
@@ -781,8 +861,8 @@ async function vAdmin() {
       </select>
     </div>
     <div class="bulk-uploader" id="bulkUploader" onclick="document.getElementById('bulkInput').click()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
-      <h4>📁 اختر مجلد الفصول</h4>
+      ${ICONS.folder}
+      <h4>اختر مجلد الفصول</h4>
       <p>اضغط هنا لاختيار المجلد الرئيسي<br>سيتم رفع جميع الفصول الفرعية تلقائياً</p>
       <input type="file" id="bulkInput" webkitdirectory multiple accept="image/*">
     </div>
@@ -792,7 +872,7 @@ async function vAdmin() {
       <div class="bulk-log" id="bulkLog"></div>
     </div>
   </div>
-  <div class="sec-title"><span class="line"></span>➕ إضافة فصل واحد</div>
+  <div class="sec-title"><span class="line"></span>${ICONS.plus} إضافة فصل واحد</div>
   <div class="panel">
     <div class="field"><label>العمل</label><select id="acWork">${(ws||[]).map(w=>`<option value="${w.id}">${esc(w.title)}</option>`).join('')}</select></div>
     <div class="field"><label>رقم الفصل</label><input id="acNum" type="number"></div>
@@ -803,32 +883,32 @@ async function vAdmin() {
     <div class="field"><label>صور</label><input id="acFiles" type="file" accept="image/*" multiple></div>
     <button class="btn" onclick="adminAddChapter()">حفظ الفصل</button>
   </div>
-  <div class="sec-title"><span class="line"></span>📑 إدارة الفصول (${(chs||[]).length})</div>
+  <div class="sec-title"><span class="line"></span>${ICONS.list} إدارة الفصول (${(chs||[]).length})</div>
   <div class="panel">
     ${(chs||[]).map(c=>`<div class="manage-item">
-      <div class="manage-cover">${c.kind==='comic' ? '🎨' : '📖'}</div>
+      <div class="manage-cover">${c.kind==='comic' ? ICONS.palette : ICONS.book}</div>
       <div class="manage-info">
         <h4>الفصل ${c.number}${c.title ? `: ${esc(c.title)}` : ''}</h4>
-        <p>${esc(c.works?.title||'')} • ${c.is_locked ? '🔒 مقفل' : '🆓 مجاني'}</p>
+        <p>${esc(c.works?.title||'')} • ${c.is_locked ? ICONS.lock + ' مقفل' : ICONS.unlock + ' مجاني'}</p>
       </div>
       <div class="manage-actions">
-        <button class="btn-edit" onclick="editChapter('${c.id}')" title="تعديل">✏️</button>
-        <button class="btn-del" onclick="deleteChapter('${c.id}','الفصل ${c.number}')" title="حذف">🗑️</button>
+        <button class="btn-edit" onclick="editChapter('${c.id}')" title="تعديل">${ICONS.edit}</button>
+        <button class="btn-del" onclick="deleteChapter('${c.id}','الفصل ${c.number}')" title="حذف">${ICONS.trash}</button>
       </div>
     </div>`).join('') || '<p style="text-align:center;color:var(--muted);padding:20px">لا توجد فصول.</p>'}
   </div>
-  <div class="sec-title"><span class="line"></span>💰 الدفعات</div>
+  <div class="sec-title"><span class="line"></span>${ICONS.dollar} الدفعات</div>
   <div class="panel table-wrap"><table class="table">
     <tr><th>المرجع</th><th>المستخدم</th><th>المبلغ</th><th>TX</th><th></th></tr>
     ${(ps||[]).map(p=>`<tr>
       <td>${esc(p.reference)}</td>
       <td>${esc(p.profiles?.username||'')}</td>
       <td>${p.point_packs?.usdt_price} USDT</td>
-      <td><input id="tx-${p.id}" style="background:var(--card2);border:1px solid var(--border);color:var(--txt);padding:5px;border-radius:6px;width:100px"></td>
+      <td><input id="tx-${p.id}" style="background:rgba(8,8,12,.5);border:1px solid var(--border-gold);color:var(--txt);padding:6px;border-radius:2px;width:110px"></td>
       <td><button class="btn sm" onclick="reviewPay('${p.id}','paid')">تأكيد</button></td>
     </tr>`).join('') || '<tr><td colspan="5">لا توجد.</td></tr>'}
   </table></div>
-  <div class="sec-title"><span class="line"></span>🤝 الطلبات</div>
+  <div class="sec-title"><span class="line"></span>${ICONS.handshake} الطلبات</div>
   <div class="panel table-wrap"><table class="table">
     <tr><th>الاسم</th><th>الدور</th><th>التواصل</th><th></th></tr>
     ${(js||[]).map(j=>`<tr>
@@ -856,7 +936,7 @@ async function adminAddWork() {
   };
   if (!p.title) return toast('أدخل العنوان');
   const { error } = await sb.from('works').insert(p);
-  toast(error ? error.message : '✅ تم');
+  toast(error ? error.message : 'تم الحفظ');
   if (!error) route();
 }
 
@@ -865,7 +945,7 @@ async function editWork(id) {
   if (!w) return toast('العمل غير موجود');
   const modal = document.getElementById('modalOverlay');
   const content = document.getElementById('modalContent');
-  content.innerHTML = `<h3>✏️ تعديل: ${esc(w.title)}</h3>
+  content.innerHTML = `<h3>${ICONS.edit} تعديل: ${esc(w.title)}</h3>
     <div class="field"><label>العنوان</label><input id="ewTitle" value="${esc(w.title)}"></div>
     <div class="field"><label>النوع</label><select id="ewType">${['مانهوا','مانجا','مانها','رواية','كوميكس'].map(t=>`<option ${w.type===t?'selected':''}>${t}</option>`).join('')}</select></div>
     <div class="field"><label>القسم</label><select id="ewKind"><option value="comic" ${w.kind==='comic'?'selected':''}>كوميكس</option><option value="novel" ${w.kind==='novel'?'selected':''}>رواية</option></select></div>
@@ -881,7 +961,6 @@ async function editWork(id) {
     </div>`;
   modal.classList.add('show');
 }
-
 async function saveWork(id) {
   const p = {
     title: $('#ewTitle').value.trim(),
@@ -896,17 +975,13 @@ async function saveWork(id) {
   };
   const { error } = await sb.from('works').update(p).eq('id', id);
   if (error) return toast(error.message);
-  toast('✅ تم التعديل');
-  closeModal();
-  route();
+  toast('تم التعديل'); closeModal(); route();
 }
-
 async function deleteWork(id, title) {
   if (!confirm(`هل أنت متأكد من حذف "${title}"؟ سيتم حذف جميع فصوله أيضاً.`)) return;
   const { error } = await sb.from('works').delete().eq('id', id);
   if (error) return toast(error.message);
-  toast('🗑️ تم الحذف');
-  route();
+  toast('تم الحذف'); route();
 }
 
 async function adminAddChapter() {
@@ -929,30 +1004,24 @@ async function adminAddChapter() {
   }
   if (paths.length) await sb.from('chapters').update({ pages: paths, kind: 'comic' }).eq('id', ch.id);
   await notifyFollowers(work_id, ch.id, number);
-  toast('✅ تم');
-  route();
+  toast('تم الحفظ'); route();
 }
-
 async function notifyFollowers(workId, chapterId, number) {
   const { data: favs } = await sb.from('favorites').select('user_id').eq('work_id', workId);
   if (!favs || !favs.length) return;
   const { data: w } = await sb.from('works').select('title').eq('id', workId).maybeSingle();
   const notifs = favs.map(f => ({
-    user_id: f.user_id,
-    work_id: workId,
-    chapter_id: chapterId,
-    type: 'new_chapter',
-    message: `📢 فصل جديد (${number}) من "${w?.title||''}"`
+    user_id: f.user_id, work_id: workId, chapter_id: chapterId,
+    type: 'new_chapter', message: `فصل جديد (${number}) من "${w?.title||''}"`
   }));
   await sb.from('notifications').insert(notifs);
 }
-
 async function editChapter(id) {
   const { data: c } = await sb.from('chapters').select('*').eq('id', id).maybeSingle();
   if (!c) return toast('الفصل غير موجود');
   const modal = document.getElementById('modalOverlay');
   const content = document.getElementById('modalContent');
-  content.innerHTML = `<h3>✏️ تعديل الفصل ${c.number}</h3>
+  content.innerHTML = `<h3>${ICONS.edit} تعديل الفصل ${c.number}</h3>
     <div class="field"><label>رقم الفصل</label><input id="ecNum" type="number" value="${c.number}"></div>
     <div class="field"><label>العنوان</label><input id="ecTitle" value="${esc(c.title||'')}"></div>
     <div class="field"><label>النوع</label><select id="ecKind"><option value="novel" ${c.kind==='novel'?'selected':''}>رواية</option><option value="comic" ${c.kind==='comic'?'selected':''}>كوميكس</option></select></div>
@@ -964,7 +1033,6 @@ async function editChapter(id) {
     </div>`;
   modal.classList.add('show');
 }
-
 async function saveChapter(id) {
   const p = {
     number: Number($('#ecNum').value),
@@ -975,48 +1043,32 @@ async function saveChapter(id) {
   };
   const { error } = await sb.from('chapters').update(p).eq('id', id);
   if (error) return toast(error.message);
-  toast('✅ تم التعديل');
-  closeModal();
-  route();
+  toast('تم التعديل'); closeModal(); route();
 }
-
 async function deleteChapter(id, label) {
   if (!confirm(`هل أنت متأكد من حذف ${label}؟`)) return;
   const { error } = await sb.from('chapters').delete().eq('id', id);
   if (error) return toast(error.message);
-  toast('🗑️ تم الحذف');
-  route();
+  toast('تم الحذف'); route();
 }
-
 function closeModal() {
   const m = document.getElementById('modalOverlay');
   if (m) m.classList.remove('show');
 }
-
 async function reviewPay(id, status) {
   const tx = $(`#tx-${id}`)?.value.trim() || null;
   const { error } = await sb.rpc('admin_review_payment', {
-    p_id: id,
-    p_status: status,
-    p_note: tx ? `TX: ${tx}` : null
+    p_id: id, p_status: status, p_note: tx ? `TX: ${tx}` : null
   });
-  toast(error ? error.message : 'تم');
-  if (!error) route();
+  toast(error ? error.message : 'تم'); if (!error) route();
 }
-
 async function reviewJoin(id, status) {
   const { error } = await sb.from('join_requests').update({ status }).eq('id', id);
-  toast(error ? error.message : 'تم');
-  if (!error) route();
+  toast(error ? error.message : 'تم'); if (!error) route();
 }
-
 async function copyTxt(t) {
-  try {
-    await navigator.clipboard.writeText(t);
-    toast('📋 نسخ');
-  } catch {
-    toast('انسخ يدوياً');
-  }
+  try { await navigator.clipboard.writeText(t); toast('تم النسخ'); }
+  catch { toast('انسخ يدوياً'); }
 }
 
 // ============ 14. الرفع الجماعي ============
@@ -1060,9 +1112,8 @@ async function startBulkUpload(files) {
     log.scrollTop = log.scrollHeight;
   };
 
-  logMsg(`📦 تم العثور على ${files.length} ملف`, 'info');
+  logMsg(`تم العثور على ${files.length} ملف`, 'info');
 
-  // تجميع الملفات حسب المجلد
   const chaptersMap = new Map();
   files.forEach(f => {
     const path = f.webkitRelativePath || f.name;
@@ -1071,18 +1122,16 @@ async function startBulkUpload(files) {
     if (parts.length >= 3) chapFolder = parts[1];
     else if (parts.length === 2) chapFolder = parts[0];
     else return;
-
     if (!chaptersMap.has(chapFolder)) chaptersMap.set(chapFolder, []);
     chaptersMap.get(chapFolder).push(f);
   });
 
   if (!chaptersMap.size) {
-    logMsg('❌ لم أجد أي مجلدات فصول. تأكد من تنظيم المجلدات.', 'err');
+    logMsg('لم أجد أي مجلدات فصول. تأكد من تنظيم المجلدات.', 'err');
     text.textContent = 'فشل: لا توجد مجلدات';
     return;
   }
 
-  // ترتيب الفصول والصور
   const chapters = [...chaptersMap.entries()].map(([folder, files]) => {
     const numMatch = folder.match(/\d+/);
     const number = numMatch ? parseInt(numMatch[0]) : 0;
@@ -1094,7 +1143,7 @@ async function startBulkUpload(files) {
     return { folder, number, title: folder, files };
   }).sort((a, b) => a.number - b.number);
 
-  logMsg(`📚 تم التعرف على ${chapters.length} فصل`, 'ok');
+  logMsg(`تم التعرف على ${chapters.length} فصل`, 'ok');
 
   let done = 0;
   const total = chapters.length;
@@ -1103,17 +1152,11 @@ async function startBulkUpload(files) {
 
   for (const chap of chapters) {
     try {
-      logMsg(`⏳ الفصل ${chap.number} (${chap.folder}) — ${chap.files.length} صورة…`, 'info');
-
+      logMsg(`الفصل ${chap.number} (${chap.folder}) — ${chap.files.length} صورة…`, 'info');
       const { data: ch, error: chErr } = await sb.from('chapters').insert({
-        work_id: workId,
-        number: chap.number,
-        title: chap.title,
-        kind: 'comic',
-        is_locked: defaultLock,
-        published: true
+        work_id: workId, number: chap.number, title: chap.title,
+        kind: 'comic', is_locked: defaultLock, published: true
       }).select().single();
-
       if (chErr) throw new Error('فشل إنشاء الفصل: ' + chErr.message);
 
       const paths = [];
@@ -1125,26 +1168,22 @@ async function startBulkUpload(files) {
         if (r.error) throw new Error('فشل رفع صورة: ' + r.error.message);
         paths.push(path);
       }
-
       await sb.from('chapters').update({ pages: paths }).eq('id', ch.id);
-
       successCount++;
-      logMsg(`✅ الفصل ${chap.number} — تم (${paths.length} صورة)`, 'ok');
+      logMsg(`الفصل ${chap.number} — تم (${paths.length} صورة)`, 'ok');
     } catch (err) {
       errorCount++;
-      logMsg(`❌ الفصل ${chap.number}: ${err.message}`, 'err');
+      logMsg(`الفصل ${chap.number}: ${err.message}`, 'err');
     }
-
     done++;
     const pct = Math.round((done / total) * 100);
     fill.style.width = pct + '%';
     text.textContent = `${done} / ${total} (${pct}%)`;
   }
 
-  logMsg(`🎉 انتهى! النجاح: ${successCount} | الفشل: ${errorCount}`, successCount > 0 ? 'ok' : 'err');
+  logMsg(`انتهى! النجاح: ${successCount} | الفشل: ${errorCount}`, successCount > 0 ? 'ok' : 'err');
   text.textContent = `انتهى الرفع — نجح ${successCount} من ${total}`;
-  toast(`✅ تم رفع ${successCount} فصل بنجاح`);
-
+  toast(`تم رفع ${successCount} فصل بنجاح`);
   setTimeout(() => route(), 2000);
 }
 
@@ -1158,7 +1197,7 @@ async function route() {
   const s = $('#sidebar'); if (s) s.classList.remove('show');
   const o = $('#overlay'); if (o) o.classList.remove('show');
 
-  app.innerHTML = '<div class="loading">جارٍ التحميل…</div>';
+  app.innerHTML = '<div class="loading">جارٍ التحميل</div>';
 
   try {
     if (!sb) return boot();
