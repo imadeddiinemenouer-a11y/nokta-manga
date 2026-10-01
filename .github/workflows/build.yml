@@ -1,0 +1,44 @@
+name: Build Static Site
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'config.js'
+      - 'scripts/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Build static pages
+        run: node scripts/build.js
+      
+      - name: Commit and push
+        run: |
+          git config user.name "Alpha Comix Bot"
+          git config user.email "bot@comixalpha.dpdns.org"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "لا توجد تغييرات"
+          else
+            git commit -m "🤖 Auto-build: $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git push
+            echo "✅ تم الرفع"
+          fi
