@@ -18,10 +18,7 @@
 <header>
 <div class="hwrap">
 <button class="menu-btn" onclick="toggleMenu()" aria-label="القائمة">
-<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="url(#headerGold)" stroke-width="2.5" stroke-linecap="butt">
-<defs><linearGradient id="headerGold" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#e0c88a"/><stop offset="100%" stop-color="#8b6f2f"/></linearGradient></defs>
-<path d="M3 6h18M3 12h18M3 18h18"/>
-</svg>
+<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="butt"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
 </button>
 <a class="logo" href="#/" title="Alpha Comix">
 <img src="logo.png" alt="Alpha Comix" class="logo-img">
@@ -68,6 +65,25 @@
 
 <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
   <div class="modal" id="modalContent"></div>
+</div>
+
+<!-- شريط تقدم الرفع العائم -->
+<div class="bulk-floating" id="bulkFloating">
+  <div class="bulk-floating-head">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt"><path d="M12 2l10 5v10l-10 5-10-5V7z"/><path d="M2 7l10 5 10-5M12 12v10"/></svg>
+    <span>رفع الفصول</span>
+    <button class="bulk-minimize" onclick="document.getElementById('bulkFloating').classList.toggle('minimized')" title="تصغير">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="butt"><path d="M5 12h14"/></svg>
+    </button>
+    <button class="bulk-close" onclick="closeBulkFloating()" title="إغلاق">
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="butt"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+  <div class="bulk-floating-body">
+    <div class="bulk-floating-bar"><div class="bulk-floating-fill" id="bulkFloatingFill"></div></div>
+    <div class="bulk-floating-text" id="bulkFloatingText">في الانتظار…</div>
+    <div class="bulk-floating-log" id="bulkFloatingLog"></div>
+  </div>
 </div>
 
 <footer>
