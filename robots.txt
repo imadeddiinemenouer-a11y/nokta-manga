@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://comixalpha.dpdns.org/sitemap.xml
