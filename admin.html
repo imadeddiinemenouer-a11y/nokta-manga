@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="theme-color" content="#08080c">
+<meta name="robots" content="noindex, nofollow">
+<title>لوحة الإدارة | Alpha Comix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Lalezar&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="icon" type="image/png" href="logo.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="config.js"></script>
+</head>
+<body style="padding-bottom:0">
+
+<header>
+<div class="hwrap">
+<a class="logo" href="index.html" title="العودة للموقع">
+<img src="logo.png" alt="Alpha Comix" class="logo-img">
+</a>
+<span style="font-family:'Lalezar',Cairo;font-weight:400;font-size:1.2rem;background:var(--grad-gold);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;margin-inline-start:10px">لوحة الإدارة</span>
+<div class="hacts">
+<button class="icon-btn" id="themeBtn" onclick="toggleTheme()" aria-label="الوضع"></button>
+<a class="icon-btn" href="index.html" title="العودة للموقع">
+<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt"><path d="M3 10l9-7 9 7v11H3z"/><path d="M9 21V13h6v8"/></svg>
+</a>
+<button class="icon-btn" onclick="signOut()" title="تسجيل الخروج">
+<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+</button>
+</div>
+</div>
+</header>
+
+<main id="adminApp" style="padding-top:20px">
+<div class="loading">جارٍ التحقق من الصلاحيات…</div>
+</main>
+
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal" id="modalContent"></div>
+</div>
+
+<div class="bulk-floating" id="bulkFloating">
+  <div class="bulk-floating-head">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt"><path d="M12 2l10 5v10l-10 5-10-5V7z"/><path d="M2 7l10 5 10-5M12 12v10"/></svg>
+    <span>رفع الفصول</span>
+    <button class="bulk-minimize" onclick="document.getElementById('bulkFloating').classList.toggle('minimized')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="butt"><path d="M5 12h14"/></svg></button>
+    <button class="bulk-close" onclick="closeBulkFloating()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="butt"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div class="bulk-floating-body">
+    <div class="bulk-floating-bar"><div class="bulk-floating-fill" id="bulkFloatingFill"></div></div>
+    <div class="bulk-floating-text" id="bulkFloatingText">في الانتظار…</div>
+    <div class="bulk-floating-log" id="bulkFloatingLog"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+<script src="admin.js"></script>
+</body>
+</html>
