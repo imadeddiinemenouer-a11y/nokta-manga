@@ -1,6 +1,7 @@
 /* ============================================================
-   ALPHA COMIX — التطبيق الرئيسي
-   (لوحة الإدارة في admin.html مستقلة)
+   ALPHA COMIX — التطبيق الرئيسي v3
+   إصلاحات: localStorage للزوار، معالجة صور مكسورة، debounce،
+   إعادة محاولة الاتصال، رسائل خطأ أوضح
    ============================================================ */
 
 // ============ 1. الإعداد ============
@@ -16,7 +17,7 @@ let libraryTab = 'favorites';
 let browseSort = 'new';
 let fState = { types: [], genres: [], ages: [], status: [] };
 let readerTrackingCleanup = null;
-let readerSettings = { reading_mode: 'webtoon', font_size: 18, line_height: 2.2, bg_color: 'default', brightness: 100, reading_direction: 'rtl' };
+let readerSettings = null;
 
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
@@ -27,7 +28,31 @@ const STATIC_AGES = ['13+', '16+', '18+'];
 const STATIC_STATUS = ['مستمرة', 'متوقفة', 'منتهية'];
 const STATIC_GENRES = ['أكشن','فانتازيا','رومانسية','غموض','نظام','دراما','مغامرة','مدرسي','شونين','قوى خاصة','ناجٍ','مصاصين','سحر','مملكة','تاريخي','ارتقاء','رياضة','خيال','حياة يومية','جوسي','فنون قتالية','سينين','شوجو','إيسيكاي','ميكا','رعب','نفسي','عسكري','موسيقي'];
 
-// ============ 2. الأيقونات ============
+const DEFAULT_READER_SETTINGS = {
+  reading_mode: 'webtoon',
+  font_size: 18,
+  line_height: 2.2,
+  bg_color: 'default',
+  brightness: 100,
+  reading_direction: 'rtl'
+};
+
+// ============ 2. تحميل/حفظ إعدادات القارئ ============
+function loadReaderSettingsLocal() {
+  try {
+    const stored = localStorage.getItem('noktaReaderSettings');
+    if (stored) return { ...DEFAULT_READER_SETTINGS, ...JSON.parse(stored) };
+  } catch (e) {}
+  return { ...DEFAULT_READER_SETTINGS };
+}
+
+function saveReaderSettingsLocal(s) {
+  try { localStorage.setItem('noktaReaderSettings', JSON.stringify(s)); } catch (e) {}
+}
+
+readerSettings = loadReaderSettingsLocal();
+
+// ============ 3. الأيقونات ============
 const SVG_DEFS = `<defs>
 <linearGradient id="icoGold" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f0d78a"/><stop offset="50%" stop-color="#c9a961"/><stop offset="100%" stop-color="#8b6f2f"/></linearGradient>
 <linearGradient id="icoGoldV" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#e0c88a"/><stop offset="100%" stop-color="#8b6f2f"/></linearGradient>
@@ -57,7 +82,6 @@ const ICONS = {
   list: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><circle cx="5" cy="6" r="1.8" fill="url(#icoGold)"/><circle cx="5" cy="12" r="1.8" fill="url(#icoGold)"/><circle cx="5" cy="18" r="1.8" fill="url(#icoGold)"/><line x1="10" y1="6" x2="21" y2="6" stroke="url(#icoGoldV)" stroke-width="2"/><line x1="10" y1="12" x2="21" y2="12" stroke="url(#icoGoldV)" stroke-width="2"/><line x1="10" y1="18" x2="21" y2="18" stroke="url(#icoGoldV)" stroke-width="2"/></g></svg>`,
   message: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M2 4h20v14H8l-6 4z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M6 8h12M6 11h8" stroke="#8b6f2f" stroke-width="0.7"/></g></svg>`,
   cart: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M2 4h3l3 14h11l2-10H6" fill="none" stroke="url(#icoGold)" stroke-width="2"/><circle cx="9" cy="21" r="1.8" fill="url(#icoGold)"/><circle cx="19" cy="21" r="1.8" fill="url(#icoGold)"/></g></svg>`,
-  dollar: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><circle cx="12" cy="12" r="10" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M12 4v16M16 7h-6a2.5 2.5 0 0 0 0 5h4a2.5 2.5 0 0 1 0 5H8" fill="none" stroke="#0f1117" stroke-width="1.8"/></g></svg>`,
   x: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g stroke-linecap="butt"><line x1="6" y1="6" x2="18" y2="18" stroke="url(#icoRed)" stroke-width="3"/><line x1="18" y1="6" x2="6" y2="18" stroke="url(#icoRed)" stroke-width="3"/></g></svg>`,
   alert: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2L1 22h22z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><line x1="12" y1="9" x2="12" y2="15" stroke="#b91c37" stroke-width="2"/><circle cx="12" cy="18" r="1.2" fill="#b91c37"/></g></svg>`,
   arrowLeft: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M20 12H5M10 6l-6 6 6 6" fill="none" stroke="url(#icoGold)" stroke-width="2.5" stroke-linecap="butt" stroke-linejoin="miter"/></g></svg>`,
@@ -68,11 +92,11 @@ const ICONS = {
   minimize: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g stroke="url(#icoGold)" stroke-width="2.5" stroke-linecap="butt" fill="none"><path d="M8 3v3H5M16 3v3h3M8 21v-3H5M16 21v-3h3"/></g></svg>`,
   clock: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><circle cx="12" cy="12" r="9" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M12 6v6l4 2" fill="none" stroke="#0f1117" stroke-width="2" stroke-linecap="butt"/></g></svg>`,
   palette: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10c1 0 1.8-.7 1.8-1.6 0-.4-.2-.8-.4-1.1-.2-.3-.4-.6-.4-1 0-.9.8-1.6 1.7-1.6H17A5 5 0 0 0 22 11c0-5-4.5-9-10-9z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><circle cx="6.5" cy="12.5" r="1.3" fill="#b91c37"/><circle cx="9.5" cy="7.5" r="1.3" fill="#7c5cff"/><circle cx="15" cy="7.5" r="1.3" fill="#2ecc71"/><circle cx="18" cy="12.5" r="1.3" fill="#f5b942"/></g></svg>`,
-  home: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2L2 11h3v11h14V11h3z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><rect x="9" y="13" width="6" height="9" fill="#0f1117" stroke="#8b6f2f" stroke-width="0.6"/></g></svg>`,
-  checkGreen: `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="butt" stroke-linejoin="miter"><path d="M4 12l6 6L20 6"/></svg>`
+  checkGreen: `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="butt" stroke-linejoin="miter"><path d="M4 12l6 6L20 6"/></svg>`,
+  check: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<path d="M4 12l6 6L20 6" fill="none" stroke="url(#icoGold)" stroke-width="3.5" stroke-linecap="butt"/></svg>`
 };
 
-// ============ 3. الأدوات ============
+// ============ 4. الأدوات ============
 function toast(m) {
   const t = $('#toast'); if (!t) return;
   t.textContent = m; t.classList.add('show');
@@ -105,10 +129,19 @@ function toggleTheme() {
 }
 theme();
 
-// ============ 4. التهيئة ============
+// ✅ debounce للبحث
+function debounce(fn, wait = 300) {
+  let timer;
+  return function (...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn.apply(this, args), wait);
+  };
+}
+
+// ============ 5. التهيئة ============
 async function boot() {
   if (!sb) {
-    app.innerHTML = `<div class="panel"><h2>إعداد Supabase مطلوب</h2><p style="color:var(--muted);line-height:2;margin-top:10px">املأ <b>config.js</b> بالقيم الصحيحة.</p></div>`;
+    app.innerHTML = `<div class="panel"><h2>⚙️ إعداد Supabase مطلوب</h2><p style="color:var(--muted);line-height:2;margin-top:10px">املأ <b>config.js</b> بالقيم الصحيحة.</p></div>`;
     return;
   }
   const r = await sb.auth.getSession();
@@ -126,15 +159,25 @@ async function loadProfile() {
   if (session) {
     const { data } = await sb.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
     profile = data;
-    await loadReaderSettings();
+    await syncReaderSettings();
   }
 }
 
-async function loadReaderSettings() {
+async function syncReaderSettings() {
   if (!session) return;
   try {
     const { data } = await sb.from('reader_settings').select('*').eq('user_id', session.user.id).maybeSingle();
-    if (data) readerSettings = data;
+    if (data) {
+      readerSettings = {
+        reading_mode: data.reading_mode,
+        font_size: data.font_size,
+        line_height: data.line_height,
+        bg_color: data.bg_color,
+        brightness: data.brightness,
+        reading_direction: data.reading_direction
+      };
+      saveReaderSettingsLocal(readerSettings);
+    }
   } catch (e) {}
 }
 
@@ -157,41 +200,51 @@ function refreshHeader() {
 }
 
 async function loadBalance() {
-  const { data } = await sb.rpc('get_my_balance');
-  if (!data || data.error) return;
+  try {
+    const { data } = await sb.rpc('get_my_balance');
+    if (!data || data.error) return;
+  } catch (e) {}
 }
 
 async function checkNotifications() {
   if (!session) return;
-  const { count } = await sb.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id).eq('is_read', false);
-  const d = $('#notifDot');
-  if (d) d.style.display = count > 0 ? 'block' : 'none';
+  try {
+    const { count } = await sb.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id).eq('is_read', false);
+    const d = $('#notifDot');
+    if (d) d.style.display = count > 0 ? 'block' : 'none';
+  } catch (e) {}
 }
 
 async function signIn() {
-  const { error } = await sb.auth.signInWithPassword({ email: $('#email').value.trim(), password: $('#pass').value });
+  const email = $('#email').value.trim(), password = $('#pass').value;
+  if (!email || !password) return toast('أكمل البريد وكلمة المرور');
+  const { error } = await sb.auth.signInWithPassword({ email, password });
   if (error) toast(error.message);
   else { toast('تم تسجيل الدخول'); route(); }
 }
 async function signUp() {
-  const email = $('#email').value.trim(); const password = $('#pass').value;
+  const email = $('#email').value.trim(), password = $('#pass').value;
+  if (!email) return toast('أدخل البريد الإلكتروني');
   if (password.length < 8) return toast('كلمة المرور 8 أحرف على الأقل');
   const { error } = await sb.auth.signUp({ email, password });
-  toast(error ? error.message : 'تم إنشاء الحساب');
+  toast(error ? error.message : 'تم إنشاء الحساب؛ تحقق من بريدك');
 }
 async function signOut() { await sb.auth.signOut(); toast('تم تسجيل الخروج'); route(); }
 
-// ============ 5. جلب البيانات ============
+// ============ 6. جلب البيانات ============
 async function fetchWorks(kind) {
   let q = sb.from('works').select('*').eq('published', true).order('updated_at', { ascending: false });
   if (kind) q = q.eq('kind', kind);
   const { data, error } = await q;
-  return error ? [] : data || [];
+  if (error) { console.warn('fetchWorks:', error.message); return []; }
+  return data || [];
 }
 async function fetchFavorites() {
   if (!session) return [];
-  const { data } = await sb.from('favorites').select('work_id');
-  return (data || []).map(f => f.work_id);
+  try {
+    const { data } = await sb.from('favorites').select('work_id');
+    return (data || []).map(f => f.work_id);
+  } catch (e) { return []; }
 }
 async function fetchReadingStatuses() {
   if (!session) return {};
@@ -204,17 +257,21 @@ async function fetchReadingStatuses() {
 }
 async function isFavorite(workId) {
   if (!session) return false;
-  const { data } = await sb.from('favorites').select('*').eq('user_id', session.user.id).eq('work_id', workId).maybeSingle();
-  return !!data;
+  try {
+    const { data } = await sb.from('favorites').select('*').eq('user_id', session.user.id).eq('work_id', workId).maybeSingle();
+    return !!data;
+  } catch (e) { return false; }
 }
 async function fetchLatestChapters(workId, limit = 4) {
-  const { data } = await sb.from('chapters').select('id, number, title, created_at')
-    .eq('work_id', workId).eq('published', true)
-    .order('number', { ascending: false }).limit(limit);
-  return data || [];
+  try {
+    const { data } = await sb.from('chapters').select('id, number, title, created_at')
+      .eq('work_id', workId).eq('published', true)
+      .order('number', { ascending: false }).limit(limit);
+    return data || [];
+  } catch (e) { return []; }
 }
 
-// ============ 6. البطاقات ============
+// ============ 7. البطاقات ============
 function statusBadgeHTML(status) {
   if (!status) return '';
   const labels = { reading: 'أقرأ حالياً', plan: 'سأقرأ', completed: 'مكتمل', paused: 'متوقف' };
@@ -272,7 +329,7 @@ async function releaseCardHTML(w) {
   </div>`;
 }
 
-// ============ 7. الصفحة الرئيسية ============
+// ============ 8. الصفحة الرئيسية ============
 async function vHome() {
   const works = await fetchWorks();
   const favs = await fetchFavorites();
@@ -308,7 +365,7 @@ async function vHome() {
   <div class="grid">${today.map(w=>cardHTML(w,favs.includes(w.id),statuses[w.id])).join('')}</div>`;
 }
 
-// ============ 8. صفحة التصفح ============
+// ============ 9. صفحة التصفح ============
 async function vBrowse(kind) {
   const works = await fetchWorks(kind);
   const favs = await fetchFavorites();
@@ -446,7 +503,7 @@ function drawBrowse() {
   $$('.dropdown.show').forEach(d => buildDropdownContent(d.id));
 }
 
-// ============ 9. صفحة العمل ============
+// ============ 10. صفحة العمل ============
 async function vWork(id) {
   const { data: w } = await sb.from('works').select('*').eq('id', id).maybeSingle();
   if (!w) return '<div class="panel">العمل غير موجود.</div>';
@@ -568,31 +625,39 @@ async function setReadingStatus(workId, status) {
 async function toggleFavorite(workId) {
   if (!session) return go('auth');
   const isFav = await isFavorite(workId);
-  if (isFav) await sb.from('favorites').delete().eq('user_id', session.user.id).eq('work_id', workId);
-  else await sb.from('favorites').insert({ user_id: session.user.id, work_id: workId });
-  toast(isFav ? 'تم الحذف من المفضلة' : 'تم الإضافة للمفضلة');
-  route();
+  try {
+    if (isFav) await sb.from('favorites').delete().eq('user_id', session.user.id).eq('work_id', workId);
+    else await sb.from('favorites').insert({ user_id: session.user.id, work_id: workId });
+    toast(isFav ? 'تم الحذف من المفضلة' : 'تم الإضافة للمفضلة');
+    route();
+  } catch (e) { toast('حدث خطأ'); }
 }
 async function rateWork(workId, score) {
   if (!session) return go('auth');
-  await sb.from('ratings').upsert({ user_id: session.user.id, work_id: workId, score });
-  toast('تم التقييم'); route();
+  try {
+    await sb.from('ratings').upsert({ user_id: session.user.id, work_id: workId, score });
+    toast('تم التقييم'); route();
+  } catch (e) { toast('حدث خطأ'); }
 }
 async function postComment(workId) {
   if (!session) return go('auth');
   const input = document.getElementById('commentInput');
   const content = input?.value.trim();
   if (!content) return toast('اكتب تعليقاً');
-  const { error } = await sb.from('comments').insert({ user_id: session.user.id, work_id: workId, content });
-  if (error) return toast(error.message);
-  toast('تم النشر'); route();
+  try {
+    const { error } = await sb.from('comments').insert({ user_id: session.user.id, work_id: workId, content });
+    if (error) return toast(error.message);
+    toast('تم النشر'); route();
+  } catch (e) { toast('حدث خطأ'); }
 }
 async function likeComment(commentId) {
   if (!session) return go('auth');
-  const { data } = await sb.from('comment_likes').select('*').eq('user_id', session.user.id).eq('comment_id', commentId).maybeSingle();
-  if (data) await sb.from('comment_likes').delete().eq('user_id', session.user.id).eq('comment_id', commentId);
-  else await sb.from('comment_likes').insert({ user_id: session.user.id, comment_id: commentId });
-  route();
+  try {
+    const { data } = await sb.from('comment_likes').select('*').eq('user_id', session.user.id).eq('comment_id', commentId).maybeSingle();
+    if (data) await sb.from('comment_likes').delete().eq('user_id', session.user.id).eq('comment_id', commentId);
+    else await sb.from('comment_likes').insert({ user_id: session.user.id, comment_id: commentId });
+    route();
+  } catch (e) { toast('حدث خطأ'); }
 }
 async function readChapter(id) {
   const { data, error } = await sb.rpc('can_read_chapter', { p_chapter_id: id });
@@ -601,7 +666,7 @@ async function readChapter(id) {
   go('read', id);
 }
 
-// ============ 10. القارئ ============
+// ============ 11. القارئ ============
 async function vReader(id) {
   const { data: ch, error } = await sb.rpc('get_chapter_for_reader', { p_chapter_id: id });
   if (error || !ch) return `<div class="error">${esc(error?.message||'الفصل غير متاح')}</div>`;
@@ -625,10 +690,12 @@ async function vReader(id) {
     const imgs = ch.pages || [];
     const urls = [];
     for (const p of imgs) {
-      const r = await sb.storage.from('chapters').createSignedUrl(p, 3600);
-      if (r.data?.signedUrl) urls.push(r.data.signedUrl);
+      try {
+        const r = await sb.storage.from('chapters').createSignedUrl(p, 3600);
+        if (r.data?.signedUrl) urls.push(r.data.signedUrl);
+      } catch (e) {}
     }
-    body = urls.map((u,i)=>`<img class="reader-image" src="${esc(u)}" alt="صفحة ${i+1}" loading="lazy">`).join('') || '<div class="panel">لا توجد صفحات.</div>';
+    body = urls.map((u,i)=>`<img class="reader-image" src="${esc(u)}" alt="صفحة ${i+1}" loading="lazy" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div style=&quot;padding:40px;text-align:center;background:#1a1a24;border:1px solid #c9a961;border-radius:3px;margin-bottom:8px;color:#a8a49a&quot;>⚠️ فشل تحميل الصفحة '+(i+1)+'</div>')">`).join('') || '<div class="panel">لا توجد صفحات.</div>';
   }
 
   const isFav = await isFavorite(ch.work_id);
@@ -708,6 +775,8 @@ function toggleReaderSettings() {
 
 async function updateReaderSetting(key, value) {
   readerSettings[key] = value;
+  saveReaderSettingsLocal(readerSettings);
+  
   const body = document.getElementById('readerBody');
   const panel = document.getElementById('readerSettingsPanel');
   
@@ -739,6 +808,7 @@ async function updateReaderSetting(key, value) {
     });
   }
   
+  // حفظ في Supabase (للمسجلين فقط)
   if (!session) return;
   clearTimeout(window.__rsTimeout);
   window.__rsTimeout = setTimeout(async () => {
@@ -846,7 +916,7 @@ async function markChapterAsRead(chapterId, workId) {
   } catch (e) {}
 }
 
-// ============ 11. المكتبة ============
+// ============ 12. المكتبة ============
 async function vLibrary() {
   if (!session) return `<div class="empty" style="padding:80px 20px"><span class="empty-icon">${ICONS.library}</span><p>سجّل الدخول لعرض مكتبتك</p><button class="btn" style="margin-top:20px" onclick="go('auth')">تسجيل الدخول</button></div>`;
   
@@ -905,7 +975,7 @@ async function vLibrary() {
   ${contentMap[libraryTab] || contentMap.favorites}`;
 }
 
-// ============ 12. الإشعارات ============
+// ============ 13. الإشعارات ============
 async function vNotifications() {
   if (!session) return `<div class="empty" style="padding:80px 20px"><span class="empty-icon">${ICONS.bell}</span><p>سجّل الدخول لعرض الإشعارات</p><button class="btn" style="margin-top:20px" onclick="go('auth')">تسجيل الدخول</button></div>`;
   const { data } = await sb.from('notifications').select('*, works(title), chapters(number)').eq('user_id', session.user.id).order('created_at', { ascending: false }).limit(50);
@@ -922,7 +992,7 @@ async function vNotifications() {
   ${html || `<div class="empty"><span class="empty-icon">${ICONS.bell}</span><p>لا توجد إشعارات</p></div>`}`;
 }
 
-// ============ 13. الفرق والانضمام ============
+// ============ 14. الفرق والانضمام ============
 async function vTeams() {
   const { data } = await sb.from('teams').select('*').eq('published', true).order('name');
   return `<div class="sec-title"><span class="line"></span>${ICONS.shield} فرق الترجمة</div>
@@ -954,7 +1024,7 @@ async function submitJoin() {
   toast(error?error.message:'تم الإرسال'); if (!error) route();
 }
 
-// ============ 14. المصادقة والنقاط والبحث ============
+// ============ 15. المصادقة والنقاط والبحث ============
 async function vAuth() {
   return `<div class="sec-title"><span class="line"></span>${ICONS.user} حسابك</div>
   <div class="panel" style="max-width:420px;margin:auto">
@@ -1008,7 +1078,7 @@ async function copyTxt(t) {
   catch { toast('انسخ يدوياً'); }
 }
 
-// ============ 15. الراوتر ============
+// ============ 16. الراوتر ============
 async function route() {
   const h = location.hash.replace(/^#\/?/, '').split('/');
   const page = h[0] || 'home';
@@ -1052,5 +1122,12 @@ async function route() {
 
 window.addEventListener('hashchange', route);
 
-// ============ 16. البدء ============
+// ============ 17. تسجيل Service Worker ============
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+  });
+}
+
+// ============ 18. البدء ============
 boot();
