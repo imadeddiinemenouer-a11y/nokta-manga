@@ -1,5 +1,5 @@
 /* ============================================================
-   ALPHA COMIX — التطبيق الاحترافي الكامل
+   ALPHA COMIX — التطبيق الكامل النهائي
    ============================================================ */
 
 // ============ 1. الإعداد ============
@@ -12,9 +12,9 @@ let session = null;
 let profile = null;
 let browseWorks = [];
 let libraryTab = 'favorites';
-let readerWide = false;
 let browseSort = 'new';
 let fState = { types: [], genres: [], ages: [], status: [] };
+let readerTrackingCleanup = null;
 
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
@@ -25,130 +25,68 @@ const STATIC_AGES = ['13+', '16+', '18+'];
 const STATIC_STATUS = ['مستمرة', 'متوقفة', 'منتهية'];
 const STATIC_GENRES = ['أكشن','فانتازيا','رومانسية','غموض','نظام','دراما','مغامرة','مدرسي','شونين','قوى خاصة','ناجٍ','مصاصين','سحر','مملكة','تاريخي','ارتقاء','رياضة','خيال','حياة يومية','جوسي','فنون قتالية','سينين','شوجو','إيسيكاي','ميكا','رعب','نفسي','عسكري','موسيقي'];
 
-// ============ تعريفات SVG مشتركة ============
-const SVG_DEFS = `
-<defs>
-  <linearGradient id="icoGold" x1="0%" y1="0%" x2="100%" y2="100%">
-    <stop offset="0%" stop-color="#f0d78a"/>
-    <stop offset="50%" stop-color="#c9a961"/>
-    <stop offset="100%" stop-color="#8b6f2f"/>
-  </linearGradient>
-  <linearGradient id="icoGoldV" x1="0%" y1="0%" x2="0%" y2="100%">
-    <stop offset="0%" stop-color="#e0c88a"/>
-    <stop offset="100%" stop-color="#8b6f2f"/>
-  </linearGradient>
-  <linearGradient id="icoRed" x1="0%" y1="0%" x2="100%" y2="100%">
-    <stop offset="0%" stop-color="#ff5a6b"/>
-    <stop offset="100%" stop-color="#b91c37"/>
-  </linearGradient>
-  <filter id="icoGlow" x="-50%" y="-50%" width="200%" height="200%">
-    <feGaussianBlur stdDeviation="1.2" result="blur"/>
-    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-  </filter>
-  <filter id="icoShadow">
-    <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#000" flood-opacity=".5"/>
-  </filter>
+// ============ مكتبة الأيقونات SVG ============
+const SVG_DEFS = `<defs>
+<linearGradient id="icoGold" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f0d78a"/><stop offset="50%" stop-color="#c9a961"/><stop offset="100%" stop-color="#8b6f2f"/></linearGradient>
+<linearGradient id="icoGoldV" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#e0c88a"/><stop offset="100%" stop-color="#8b6f2f"/></linearGradient>
+<linearGradient id="icoRed" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#ff5a6b"/><stop offset="100%" stop-color="#b91c37"/></linearGradient>
+<filter id="icoShadow"><feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-color="#000" flood-opacity=".5"/></filter>
 </defs>`;
 
 const ICONS = {
   sun: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><circle cx="12" cy="12" r="4.5" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.5"/><g stroke="url(#icoGoldV)" stroke-width="1.8" stroke-linecap="butt"><line x1="12" y1="1.5" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22.5"/><line x1="3.6" y1="3.6" x2="5.7" y2="5.7"/><line x1="18.3" y1="18.3" x2="20.4" y2="20.4"/><line x1="1.5" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22.5" y2="12"/><line x1="3.6" y1="20.4" x2="5.7" y2="18.3"/><line x1="18.3" y1="5.7" x2="20.4" y2="3.6"/></g></g></svg>`,
-
   moon: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M20.5 15.5A9 9 0 1 1 10.5 3.5a7 7 0 0 0 10 12z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/></g></svg>`,
-
-  bell: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M6 17V10a6 6 0 0 1 12 0v7z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><rect x="4" y="16.5" width="16" height="1.8" fill="url(#icoGoldV)"/><path d="M10.5 20.5a1.5 1.5 0 0 0 3 0z" fill="url(#icoGoldV)"/><circle cx="12" cy="4" r="1.3" fill="url(#icoRed)" filter="url(#icoGlow)"/></g></svg>`,
-
-  settings: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2l1.5 2.3 2.7-.3 1 2.5 2.5 1-.3 2.7L21.7 12l-2.3 1.5.3 2.7-2.5 1-1 2.5-2.7-.3L12 22l-1.5-2.3-2.7.3-1-2.5-2.5-1 .3-2.7L2.3 12l2.3-1.5-.3-2.7 2.5-1 1-2.5 2.7.3z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><circle cx="12" cy="12" r="3.2" fill="#0f1117" stroke="url(#icoRed)" stroke-width="1" filter="url(#icoGlow)"/></g></svg>`,
-
+  bell: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M6 17V10a6 6 0 0 1 12 0v7z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><rect x="4" y="16.5" width="16" height="1.8" fill="url(#icoGoldV)"/><path d="M10.5 20.5a1.5 1.5 0 0 0 3 0z" fill="url(#icoGoldV)"/><circle cx="12" cy="4" r="1.3" fill="url(#icoRed)"/></g></svg>`,
+  settings: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2l1.5 2.3 2.7-.3 1 2.5 2.5 1-.3 2.7L21.7 12l-2.3 1.5.3 2.7-2.5 1-1 2.5-2.7-.3L12 22l-1.5-2.3-2.7.3-1-2.5-2.5-1 .3-2.7L2.3 12l2.3-1.5-.3-2.7 2.5-1 1-2.5 2.7.3z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><circle cx="12" cy="12" r="3.2" fill="#0f1117" stroke="url(#icoRed)" stroke-width="1"/></g></svg>`,
   user: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><circle cx="12" cy="8" r="4.5" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M3 21c0-4.5 4-8 9-8s9 3.5 9 8z" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.6"/></g></svg>`,
-
-  menu: `<svg viewBox="0 0 24 24" width="20" height="20" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g stroke="url(#icoGoldV)" stroke-width="2.5" stroke-linecap="butt" filter="url(#icoShadow)"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></g></svg>`,
-
-  search: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="url(#icoGold)" stroke-width="2"/><circle cx="10.5" cy="10.5" r="6.5" fill="url(#icoGold)" opacity=".15"/><line x1="15.5" y1="15.5" x2="21" y2="21" stroke="url(#icoRed)" stroke-width="2.5" stroke-linecap="butt" filter="url(#icoGlow)"/></g></svg>`,
-
+  search: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="url(#icoGold)" stroke-width="2"/><line x1="15.5" y1="15.5" x2="21" y2="21" stroke="url(#icoRed)" stroke-width="2.5" stroke-linecap="butt"/></g></svg>`,
   home: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2L2 11h3v11h14V11h3z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><rect x="9" y="13" width="6" height="9" fill="#0f1117" stroke="#8b6f2f" stroke-width="0.6"/></g></svg>`,
-
   palette: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10c1 0 1.8-.7 1.8-1.6 0-.4-.2-.8-.4-1.1-.2-.3-.4-.6-.4-1 0-.9.8-1.6 1.7-1.6H17A5 5 0 0 0 22 11c0-5-4.5-9-10-9z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><circle cx="6.5" cy="12.5" r="1.3" fill="#b91c37"/><circle cx="9.5" cy="7.5" r="1.3" fill="#7c5cff"/><circle cx="15" cy="7.5" r="1.3" fill="#2ecc71"/><circle cx="18" cy="12.5" r="1.3" fill="#f5b942"/></g></svg>`,
-
-  book: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M2 4v15c0 1 1 2 2 2h6V6H4c-1 0-2-1-2-2z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M22 4v15c0 1-1 2-2 2h-6V6h6c1 0 2-1 2-2z" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.6"/><line x1="12" y1="4" x2="12" y2="21" stroke="#b91c37" stroke-width="0.8" filter="url(#icoGlow)"/></g></svg>`,
-
+  book: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M2 4v15c0 1 1 2 2 2h6V6H4c-1 0-2-1-2-2z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M22 4v15c0 1-1 2-2 2h-6V6h6c1 0 2-1 2-2z" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.6"/><line x1="12" y1="4" x2="12" y2="21" stroke="#b91c37" stroke-width="0.8"/></g></svg>`,
   library: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><rect x="3" y="3" width="4.5" height="18" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.5"/><rect x="9" y="3" width="4.5" height="18" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.5"/><path d="M16 4.5l4 1-2.5 15-4-1z" fill="url(#icoRed)" stroke="#8b6f2f" stroke-width="0.5"/></g></svg>`,
-
-  shield: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2L3 6v6c0 5 4 9 9 10 5-1 9-5 9-10V6z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M12 7v9M8 12h8" stroke="#b91c37" stroke-width="1" filter="url(#icoGlow)"/></g></svg>`,
-
-  crown: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M2 18L4 8l4 3 4-7 4 7 4-3 2 10z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><rect x="2" y="18" width="20" height="3" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.5"/><circle cx="4" cy="8" r="1.2" fill="url(#icoRed)" filter="url(#icoGlow)"/><circle cx="12" cy="4" r="1.2" fill="url(#icoRed)" filter="url(#icoGlow)"/><circle cx="20" cy="8" r="1.2" fill="url(#icoRed)" filter="url(#icoGlow)"/></g></svg>`,
-
-  handshake: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M11 17l-4 4-6-6 5-5" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M13 7l4-4 6 6-5 5" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M9 15l3 3 3-3-3-3z" fill="url(#icoRed)" filter="url(#icoGlow)"/></g></svg>`,
-
-  fire: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-3 1-5-2 2-3 4-3 6a7 7 0 0 0 14 0c0-5-4-8-7-12z" fill="url(#icoRed)" stroke="#8b6f2f" stroke-width="0.5"/><path d="M12 10c.5 2 2 3 2 5a2 2 0 0 1-4 0c0-1 .5-1.5.5-2.5C9.5 13 9 14 9 15a3 3 0 0 0 6 0c0-2.5-2-4-3-5z" fill="url(#icoGold)" filter="url(#icoGlow)"/></g></svg>`,
-
-  lightning: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M13 2L3 14h7l-1 8 10-12h-7z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M13 2l-5 7h4l-2 5" stroke="#b91c37" stroke-width="0.8" fill="none" filter="url(#icoGlow)"/></g></svg>`,
-
+  shield: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2L3 6v6c0 5 4 9 9 10 5-1 9-5 9-10V6z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M12 7v9M8 12h8" stroke="#b91c37" stroke-width="1"/></g></svg>`,
+  crown: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M2 18L4 8l4 3 4-7 4 7 4-3 2 10z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><rect x="2" y="18" width="20" height="3" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.5"/><circle cx="4" cy="8" r="1.2" fill="url(#icoRed)"/><circle cx="12" cy="4" r="1.2" fill="url(#icoRed)"/><circle cx="20" cy="8" r="1.2" fill="url(#icoRed)"/></g></svg>`,
+  handshake: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M11 17l-4 4-6-6 5-5" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M13 7l4-4 6 6-5 5" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M9 15l3 3 3-3-3-3z" fill="url(#icoRed)"/></g></svg>`,
+  fire: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2c1 4 5 6 5 11a5 5 0 0 1-10 0c0-2 1-3 1-5-2 2-3 4-3 6a7 7 0 0 0 14 0c0-5-4-8-7-12z" fill="url(#icoRed)" stroke="#8b6f2f" stroke-width="0.5"/><path d="M12 10c.5 2 2 3 2 5a2 2 0 0 1-4 0c0-1 .5-1.5.5-2.5C9.5 13 9 14 9 15a3 3 0 0 0 6 0c0-2.5-2-4-3-5z" fill="url(#icoGold)"/></g></svg>`,
+  lightning: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M13 2L3 14h7l-1 8 10-12h-7z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/></g></svg>`,
   heart: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 21L3 12l4-7 5 5 5-5 4 7z" fill="none" stroke="url(#icoGold)" stroke-width="2"/></g></svg>`,
-  heartFilled: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 21L3 12l4-7 5 5 5-5 4 7z" fill="url(#icoRed)" stroke="#8b6f2f" stroke-width="1" filter="url(#icoGlow)"/></g></svg>`,
-
+  heartFilled: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 21L3 12l4-7 5 5 5-5 4 7z" fill="url(#icoRed)" stroke="#8b6f2f" stroke-width="1"/></g></svg>`,
   lock: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><rect x="4" y="10" width="16" height="11" rx="1" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M8 10V6a4 4 0 0 1 8 0v4" fill="none" stroke="url(#icoGoldV)" stroke-width="2"/><circle cx="12" cy="15" r="1.5" fill="#0f1117"/></g></svg>`,
   unlock: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><rect x="4" y="10" width="16" height="11" rx="1" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M8 10V6a4 4 0 0 1 7.5-2" fill="none" stroke="url(#icoGoldV)" stroke-width="2"/><circle cx="12" cy="15" r="1.5" fill="#0f1117"/></g></svg>`,
-
-  edit: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M3 21l4-1L20 7l-3-3L4 17z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M17 4l3 3-2 2-3-3z" fill="url(#icoRed)" filter="url(#icoGlow)"/></g></svg>`,
-
+  edit: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M3 21l4-1L20 7l-3-3L4 17z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M17 4l3 3-2 2-3-3z" fill="url(#icoRed)"/></g></svg>`,
   trash: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M3 6h18M9 3h6l1 3H8z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.5"/><path d="M5 6l1.5 15h11L19 6z" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.6"/><line x1="10" y1="10" x2="10" y2="18" stroke="#b91c37" stroke-width="1"/><line x1="14" y1="10" x2="14" y2="18" stroke="#b91c37" stroke-width="1"/></g></svg>`,
-
   plus: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><line x1="12" y1="4" x2="12" y2="20" stroke="url(#icoGold)" stroke-width="3" stroke-linecap="butt"/><line x1="4" y1="12" x2="20" y2="12" stroke="url(#icoGold)" stroke-width="3" stroke-linecap="butt"/></g></svg>`,
-
   cart: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M2 4h3l3 14h11l2-10H6" fill="none" stroke="url(#icoGold)" stroke-width="2"/><circle cx="9" cy="21" r="1.8" fill="url(#icoGold)"/><circle cx="19" cy="21" r="1.8" fill="url(#icoGold)"/></g></svg>`,
-
   pen: `<svg viewBox="0 0 24 24" width="14" height="14" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M4 20l4-1L20 7l-3-3L5 16z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.5"/></g></svg>`,
-
   list: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><circle cx="5" cy="6" r="1.8" fill="url(#icoGold)"/><circle cx="5" cy="12" r="1.8" fill="url(#icoGold)"/><circle cx="5" cy="18" r="1.8" fill="url(#icoGold)"/><line x1="10" y1="6" x2="21" y2="6" stroke="url(#icoGoldV)" stroke-width="2"/><line x1="10" y1="12" x2="21" y2="12" stroke="url(#icoGoldV)" stroke-width="2"/><line x1="10" y1="18" x2="21" y2="18" stroke="url(#icoGoldV)" stroke-width="2"/></g></svg>`,
-
   message: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M2 4h20v14H8l-6 4z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M6 8h12M6 11h8" stroke="#8b6f2f" stroke-width="0.7"/></g></svg>`,
-
   package: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2l10 5v10l-10 5-10-5V7z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M2 7l10 5 10-5M12 12v10" fill="none" stroke="#8b6f2f" stroke-width="0.7"/></g></svg>`,
-
   dollar: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><circle cx="12" cy="12" r="10" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M12 4v16M16 7h-6a2.5 2.5 0 0 0 0 5h4a2.5 2.5 0 0 1 0 5H8" fill="none" stroke="#0f1117" stroke-width="1.8"/></g></svg>`,
-
   folder: `<svg viewBox="0 0 24 24" width="48" height="48" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M2 4h7l3 3h10v13H2z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.8"/><path d="M2 9h20" stroke="#8b6f2f" stroke-width="0.6"/></g></svg>`,
-
-  check: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<path d="M4 12l6 6L20 6" fill="none" stroke="url(#icoGold)" stroke-width="3.5" stroke-linecap="butt" filter="url(#icoShadow)"/></svg>`,
-
-  x: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g stroke-linecap="butt" filter="url(#icoShadow)"><line x1="6" y1="6" x2="18" y2="18" stroke="url(#icoRed)" stroke-width="3"/><line x1="18" y1="6" x2="6" y2="18" stroke="url(#icoRed)" stroke-width="3"/></g></svg>`,
-
-  clock: `<svg viewBox="0 0 24 24" width="14" height="14" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><circle cx="12" cy="12" r="9" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M12 6v6l4 2" fill="none" stroke="#0f1117" stroke-width="1.8"/></g></svg>`,
-
-  alert: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2L1 22h22z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><line x1="12" y1="9" x2="12" y2="15" stroke="#b91c37" stroke-width="2" filter="url(#icoGlow)"/><circle cx="12" cy="18" r="1.2" fill="#b91c37" filter="url(#icoGlow)"/></g></svg>`,
-
+  check: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<path d="M4 12l6 6L20 6" fill="none" stroke="url(#icoGold)" stroke-width="3.5" stroke-linecap="butt"/></svg>`,
+  checkGreen: `<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="butt" stroke-linejoin="miter"><path d="M4 12l6 6L20 6"/></svg>`,
+  x: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g stroke-linecap="butt"><line x1="6" y1="6" x2="18" y2="18" stroke="url(#icoRed)" stroke-width="3"/><line x1="18" y1="6" x2="6" y2="18" stroke="url(#icoRed)" stroke-width="3"/></g></svg>`,
+  alert: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2L1 22h22z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><line x1="12" y1="9" x2="12" y2="15" stroke="#b91c37" stroke-width="2"/><circle cx="12" cy="18" r="1.2" fill="#b91c37"/></g></svg>`,
   arrowLeft: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M20 12H5M10 6l-6 6 6 6" fill="none" stroke="url(#icoGold)" stroke-width="2.5" stroke-linecap="butt" stroke-linejoin="miter"/></g></svg>`,
   arrowRight: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M4 12h15M14 6l6 6-6 6" fill="none" stroke="url(#icoGold)" stroke-width="2.5" stroke-linecap="butt" stroke-linejoin="miter"/></g></svg>`,
   arrowUp: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 20V5M6 10l6-6 6 6" fill="none" stroke="url(#icoGold)" stroke-width="2.5" stroke-linecap="butt" stroke-linejoin="miter"/></g></svg>`,
-
-  grid: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><rect x="3" y="3" width="7" height="7" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.5"/><rect x="14" y="3" width="7" height="7" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.5"/><rect x="3" y="14" width="7" height="7" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.5"/><rect x="14" y="14" width="7" height="7" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.5"/></g></svg>`,
-
-  sliders: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><line x1="4" y1="6" x2="20" y2="6" stroke="url(#icoGoldV)" stroke-width="2"/><line x1="4" y1="12" x2="20" y2="12" stroke="url(#icoGoldV)" stroke-width="2"/><line x1="4" y1="18" x2="20" y2="18" stroke="url(#icoGoldV)" stroke-width="2"/><circle cx="9" cy="6" r="2.5" fill="url(#icoGold)" stroke="#b91c37" stroke-width="0.6" filter="url(#icoGlow)"/><circle cx="15" cy="12" r="2.5" fill="url(#icoGold)" stroke="#b91c37" stroke-width="0.6" filter="url(#icoGlow)"/><circle cx="7" cy="18" r="2.5" fill="url(#icoGold)" stroke="#b91c37" stroke-width="0.6" filter="url(#icoGlow)"/></g></svg>`,
-
-  eye: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><circle cx="12" cy="12" r="3.5" fill="#0f1117" stroke="url(#icoRed)" stroke-width="1" filter="url(#icoGlow)"/></g></svg>`,
-
-  maximize: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g stroke="url(#icoGold)" stroke-width="2.5" stroke-linecap="butt" fill="none" filter="url(#icoShadow)"><path d="M8 3H3v5M21 8V3h-5M3 16v5h5M16 21h5v-5"/></g></svg>`,
-
-  alpha: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2L2 22h20z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M8 15h8M12 8l-2 7" stroke="#b91c37" stroke-width="1.2" fill="none" filter="url(#icoGlow)"/></g></svg>`
+  sliders: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><line x1="4" y1="6" x2="20" y2="6" stroke="url(#icoGoldV)" stroke-width="2"/><line x1="4" y1="12" x2="20" y2="12" stroke="url(#icoGoldV)" stroke-width="2"/><line x1="4" y1="18" x2="20" y2="18" stroke="url(#icoGoldV)" stroke-width="2"/><circle cx="9" cy="6" r="2.5" fill="url(#icoGold)" stroke="#b91c37" stroke-width="0.6"/><circle cx="15" cy="12" r="2.5" fill="url(#icoGold)" stroke="#b91c37" stroke-width="0.6"/><circle cx="7" cy="18" r="2.5" fill="url(#icoGold)" stroke="#b91c37" stroke-width="0.6"/></g></svg>`,
+  maximize: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g stroke="url(#icoGold)" stroke-width="2.5" stroke-linecap="butt" fill="none"><path d="M8 3H3v5M21 8V3h-5M3 16v5h5M16 21h5v-5"/></g></svg>`,
+  minimize: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g stroke="url(#icoGold)" stroke-width="2.5" stroke-linecap="butt" fill="none"><path d="M8 3v3H5M16 3v3h3M8 21v-3H5M16 21v-3h3"/></g></svg>`
 };
+
 // ============ 2. الأدوات ============
 function toast(m) {
-  const t = $('#toast');
-  if (!t) return;
-  t.textContent = m;
-  t.classList.add('show');
+  const t = $('#toast'); if (!t) return;
+  t.textContent = m; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 2600);
 }
 
-function go(r, id) {
-  location.hash = id === undefined ? '#/' + r : '#/' + r + '/' + id;
-}
+function go(r, id) { location.hash = id === undefined ? '#/' + r : '#/' + r + '/' + id; }
 
 function toggleMenu() {
-  const s = $('#sidebar');
-  const o = $('#overlay');
-  if (s) s.classList.toggle('show');
-  if (o) o.classList.toggle('show');
+  const s = $('#sidebar'); const o = $('#overlay');
+  if (s) s.classList.toggle('show'); if (o) o.classList.toggle('show');
 }
 
 function timeAgo(d) {
@@ -177,17 +115,14 @@ theme();
 // ============ 3. التهيئة ============
 async function boot() {
   if (!sb) {
-    app.innerHTML = `<div class="panel"><h2>إعداد Supabase مطلوب</h2><p style="color:var(--muted);line-height:2;margin-top:10px">انسخ <b>config.example.js</b> إلى <b>config.js</b> واملأ القيم.</p></div>`;
+    app.innerHTML = `<div class="panel"><h2>إعداد Supabase مطلوب</h2><p style="color:var(--muted);line-height:2;margin-top:10px">املأ <b>config.js</b> بالقيم الصحيحة.</p></div>`;
     return;
   }
   const r = await sb.auth.getSession();
   session = r.data.session;
   await loadProfile();
   sb.auth.onAuthStateChange(async (_, s) => {
-    session = s;
-    await loadProfile();
-    refreshHeader();
-    route();
+    session = s; await loadProfile(); refreshHeader(); route();
   });
   refreshHeader();
   route();
@@ -225,34 +160,23 @@ async function loadBalance() {
 
 async function checkNotifications() {
   if (!session) return;
-  const { count } = await sb.from('notifications')
-    .select('*', { count: 'exact', head: true })
-    .eq('user_id', session.user.id)
-    .eq('is_read', false);
+  const { count } = await sb.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', session.user.id).eq('is_read', false);
   const d = $('#notifDot');
   if (d) d.style.display = count > 0 ? 'block' : 'none';
 }
 
 async function signIn() {
-  const { error } = await sb.auth.signInWithPassword({
-    email: $('#email').value.trim(),
-    password: $('#pass').value
-  });
+  const { error } = await sb.auth.signInWithPassword({ email: $('#email').value.trim(), password: $('#pass').value });
   if (error) toast(error.message);
   else { toast('تم تسجيل الدخول'); route(); }
 }
 async function signUp() {
-  const email = $('#email').value.trim();
-  const password = $('#pass').value;
+  const email = $('#email').value.trim(); const password = $('#pass').value;
   if (password.length < 8) return toast('كلمة المرور 8 أحرف على الأقل');
   const { error } = await sb.auth.signUp({ email, password });
   toast(error ? error.message : 'تم إنشاء الحساب');
 }
-async function signOut() {
-  await sb.auth.signOut();
-  toast('تم تسجيل الخروج');
-  route();
-}
+async function signOut() { await sb.auth.signOut(); toast('تم تسجيل الخروج'); route(); }
 
 // ============ 4. جلب البيانات ============
 async function fetchWorks(kind) {
@@ -268,13 +192,11 @@ async function fetchFavorites() {
 }
 async function isFavorite(workId) {
   if (!session) return false;
-  const { data } = await sb.from('favorites')
-    .select('*').eq('user_id', session.user.id).eq('work_id', workId).maybeSingle();
+  const { data } = await sb.from('favorites').select('*').eq('user_id', session.user.id).eq('work_id', workId).maybeSingle();
   return !!data;
 }
 async function fetchLatestChapters(workId, limit = 4) {
-  const { data } = await sb.from('chapters')
-    .select('id, number, title, created_at')
+  const { data } = await sb.from('chapters').select('id, number, title, created_at')
     .eq('work_id', workId).eq('published', true)
     .order('number', { ascending: false }).limit(limit);
   return data || [];
@@ -331,7 +253,7 @@ async function releaseCardHTML(w) {
   </div>`;
 }
 
-// ============ 6. الصفحات ============
+// ============ 6. الصفحة الرئيسية ============
 async function vHome() {
   const works = await fetchWorks();
   const favs = await fetchFavorites();
@@ -366,6 +288,7 @@ async function vHome() {
   <div class="grid">${today.map(w=>cardHTML(w,favs.includes(w.id))).join('')}</div>`;
 }
 
+// ============ 7. صفحة التصفح ============
 async function vBrowse(kind) {
   const works = await fetchWorks(kind);
   browseWorks = works;
@@ -395,14 +318,14 @@ async function vBrowse(kind) {
     </div>
     <div class="filter-wrap filter-full">
       <button class="filter-select" onclick="toggleDropdown('ddGen')">
-        <div style="text-align:right"><span class="label">التصنيفات (اختيار متعدد)</span><span class="value" id="vGen">الكل</span></div><span class="chev">${ICONS.arrowUp}</span>
+        <div style="text-align:right"><span class="label">التصنيفات</span><span class="value" id="vGen">الكل</span></div><span class="chev">${ICONS.arrowUp}</span>
       </button><div class="dropdown" id="ddGen"></div>
     </div>
   </div>
   <div class="active-chips" id="activeChips"></div>
   <div class="sort-bar">
     <p class="result-count" id="resultCount" style="margin:0"></p>
-    <button class="sort-toggle" id="sortBtn" onclick="toggleSort()">
+    <button class="sort-toggle" onclick="toggleSort()">
       ${ICONS.sliders}
       <span id="sortLabel">الأحدث أولاً</span>
     </button>
@@ -410,7 +333,6 @@ async function vBrowse(kind) {
   <div class="grid" id="browseGrid"></div>`;
 }
 
-// ============ 7. الفلاتر ============
 function toggleSort() {
   browseSort = browseSort === 'new' ? 'old' : browseSort === 'old' ? 'rating' : 'new';
   const lbl = document.getElementById('sortLabel');
@@ -418,8 +340,7 @@ function toggleSort() {
   drawBrowse();
 }
 function toggleDropdown(id) {
-  const t = document.getElementById(id);
-  if (!t) return;
+  const t = document.getElementById(id); if (!t) return;
   const open = t.classList.contains('show');
   $$('.dropdown').forEach(d => d.classList.remove('show'));
   $$('.filter-select').forEach(b => b.classList.remove('active'));
@@ -437,8 +358,7 @@ document.addEventListener('click', e => {
   }
 });
 function buildDropdownContent(id) {
-  const el = document.getElementById(id);
-  if (!el) return;
+  const el = document.getElementById(id); if (!el) return;
   if (id === 'ddType') {
     const fromDB = [...new Set(browseWorks.map(w => w.type).filter(Boolean))];
     const all = [...new Set([...STATIC_TYPES, ...fromDB])];
@@ -462,8 +382,7 @@ function closeDropdowns() {
   $$('.filter-select').forEach(b => b.classList.remove('active'));
 }
 function toggleFilter(k, v) {
-  const a = fState[k];
-  const i = a.indexOf(v);
+  const a = fState[k]; const i = a.indexOf(v);
   if (i >= 0) a.splice(i, 1); else a.push(v);
   drawBrowse();
 }
@@ -488,12 +407,7 @@ function drawBrowse() {
   set('vGen', fState.genres.length ? fState.genres.join('، ') : 'الكل');
   const chips = document.getElementById('activeChips');
   if (chips) {
-    const all = [
-      ...fState.types.map(v=>({k:'types',v})),
-      ...fState.ages.map(v=>({k:'ages',v})),
-      ...fState.status.map(v=>({k:'status',v})),
-      ...fState.genres.map(v=>({k:'genres',v}))
-    ];
+    const all = [...fState.types.map(v=>({k:'types',v})),...fState.ages.map(v=>({k:'ages',v})),...fState.status.map(v=>({k:'status',v})),...fState.genres.map(v=>({k:'genres',v}))];
     chips.innerHTML = all.map(x => `<span class="chip-x"><b>${esc(x.v)}</b><button onclick="toggleFilter('${x.k}','${esc(x.v)}')">${ICONS.x}</button></span>`).join('');
   }
   set('resultCount', `تم العثور على ${list.length} عمل`);
@@ -511,6 +425,8 @@ async function vWork(id) {
   const { data: chs } = await sb.rpc('get_work_chapters', { p_work_id: id });
   const { data: ratingData } = await sb.rpc('get_work_rating', { p_work_id: id });
   const { data: comments } = await sb.rpc('get_work_comments', { p_work_id: id });
+  const { data: readData } = session ? await sb.rpc('get_read_chapters', { p_work_id: id }) : { data: [] };
+  const readChapters = readData || [];
   const isFav = await isFavorite(id);
   const { data: progress } = session ? await sb.rpc('get_my_progress', { p_work_id: id }) : { data: null };
 
@@ -549,7 +465,7 @@ async function vWork(id) {
         <span class="badge b-status ${sc}">${esc(w.status||'مستمرة')}</span>
         ${(w.genres||[]).map(g=>`<span class="badge">${esc(g)}</span>`).join('')}
       </div>
-      <div class="rating-info">★ ${avg} (${cnt} تقييم)</div>
+      <div class="rating-info">★ ${avg} (${cnt} تقييم)${readChapters.length > 0 ? ` • ${readChapters.length} مقروء من ${(chs||[]).length}` : ''}</div>
       <div class="rating-stars">${starsHTML}</div>
       <p class="work-syn">${esc(w.synopsis||'')}</p>
       ${w.author ? `<p class="work-author">${ICONS.pen} الكاتب: <b>${esc(w.author)}</b></p>` : ''}
@@ -560,12 +476,18 @@ async function vWork(id) {
     </div>
   </div>
   <div class="sec-title"><span class="line"></span>${ICONS.list} الفصول (${(chs||[]).length})</div>
-  <div class="notice">الفصول المقفلة تُفتح بالنقاط. التحقق يتم في قاعدة البيانات.</div>
-  ${(chs||[]).map(ch => `<div class="ch-item ${ch.is_locked?'locked':''}">
-    <div class="num">الفصل ${ch.number}</div>
-    <div class="sub">${ch.is_locked? ICONS.lock + ' مقفل' : ICONS.unlock + ' مجاني'} ${esc(ch.title||'')}</div>
-    <button class="btn sm ${ch.is_locked?'gold':'ghost'}" onclick="readChapter('${ch.id}')">${ch.is_locked?'فتح':'قراءة'}</button>
-  </div>`).join('') || `<div class="empty"><span class="empty-icon">${ICONS.list}</span><p>لا توجد فصول بعد</p></div>`}
+  <div class="notice">الفصول المقفلة تُفتح بالنقاط. علامة "مقروء" تُضاف فقط عند إكمال الفصل.</div>
+  ${(chs||[]).map(ch => {
+    const isRead = readChapters.includes(ch.id);
+    return `<div class="ch-item ${ch.is_locked?'locked':''} ${isRead?'read':''}">
+      <div class="num">
+        <span>الفصل ${ch.number}</span>
+        ${isRead ? `<span class="read-badge">${ICONS.checkGreen} مقروء</span>` : ''}
+      </div>
+      <div class="sub">${ch.is_locked? ICONS.lock + ' مقفل' : ICONS.unlock + ' مجاني'} ${esc(ch.title||'')}</div>
+      <button class="btn sm ${ch.is_locked?'gold':'ghost'}" onclick="readChapter('${ch.id}')">${ch.is_locked?'فتح':'قراءة'}</button>
+    </div>`;
+  }).join('') || `<div class="empty"><span class="empty-icon">${ICONS.list}</span><p>لا توجد فصول بعد</p></div>`}
   <div class="sec-title"><span class="line"></span>${ICONS.message} التعليقات (${(comments||[]).length})</div>
   ${session
     ? `<div class="panel"><div class="field"><textarea id="commentInput" placeholder="اكتب تعليقاً..." style="min-height:80px"></textarea></div><button class="btn" onclick="postComment('${id}')">نشر التعليق</button></div>`
@@ -584,8 +506,7 @@ async function toggleFavorite(workId) {
 async function rateWork(workId, score) {
   if (!session) return go('auth');
   await sb.from('ratings').upsert({ user_id: session.user.id, work_id: workId, score });
-  toast('تم التقييم');
-  route();
+  toast('تم التقييم'); route();
 }
 async function postComment(workId) {
   if (!session) return go('auth');
@@ -594,13 +515,11 @@ async function postComment(workId) {
   if (!content) return toast('اكتب تعليقاً');
   const { error } = await sb.from('comments').insert({ user_id: session.user.id, work_id: workId, content });
   if (error) return toast(error.message);
-  toast('تم النشر');
-  route();
+  toast('تم النشر'); route();
 }
 async function likeComment(commentId) {
   if (!session) return go('auth');
-  const { data } = await sb.from('comment_likes')
-    .select('*').eq('user_id', session.user.id).eq('comment_id', commentId).maybeSingle();
+  const { data } = await sb.from('comment_likes').select('*').eq('user_id', session.user.id).eq('comment_id', commentId).maybeSingle();
   if (data) await sb.from('comment_likes').delete().eq('user_id', session.user.id).eq('comment_id', commentId);
   else await sb.from('comment_likes').insert({ user_id: session.user.id, comment_id: commentId });
   route();
@@ -618,8 +537,7 @@ async function vReader(id) {
   if (error || !ch) return `<div class="error">${esc(error?.message||'الفصل غير متاح')}</div>`;
   if (session) await sb.rpc('save_progress', { p_work_id: ch.work_id, p_chapter_id: id, p_page: 1 });
 
-  const { data: allChs } = await sb.from('chapters')
-    .select('id, number, title')
+  const { data: allChs } = await sb.from('chapters').select('id, number, title')
     .eq('work_id', ch.work_id).eq('published', true)
     .order('number', { ascending: true });
 
@@ -644,26 +562,94 @@ async function vReader(id) {
   const isFav = await isFavorite(ch.work_id);
   const isLight = localStorage.noktaTheme === 'light';
 
+  setTimeout(() => setupReaderTracking(id, ch.work_id), 200);
+
   return `<div class="reader-bar">
     <button class="btn sm ghost" onclick="go('work','${ch.work_id}')">${ICONS.arrowRight} رجوع</button>
     <div class="reader-title">${esc(ch.work_title)} — الفصل ${ch.number}</div>
     <div class="reader-tools">
-      <button class="reader-tool-btn" onclick="toggleReaderWidth()" title="عرض أوسع">${ICONS.maximize}</button>
+      <button class="reader-tool-btn" onclick="toggleReaderWidth()" title="ملء الشاشة" id="fsBtn">${ICONS.maximize}</button>
       <button class="reader-tool-btn" onclick="toggleFavorite('${ch.work_id}')" title="المفضلة" style="${isFav?'color:var(--red)':''}">${isFav?ICONS.heartFilled:ICONS.heart}</button>
-      <button class="reader-tool-btn" onclick="toggleTheme()" title="الوضع الليلي/النهاري">${isLight?ICONS.moon:ICONS.sun}</button>
+      <button class="reader-tool-btn" onclick="toggleTheme()" title="الوضع">${isLight?ICONS.moon:ICONS.sun}</button>
     </div>
   </div>
-  <div class="reader-body ${readerWide?'wide':''}" id="readerBody">${body}</div>
+  <div class="reader-body" id="readerBody">${body}</div>
   <div class="reader-nav">
     <button onclick="${prevCh ? `go('read','${prevCh.id}')` : 'return false'}" ${!prevCh ? 'disabled style="opacity:.4;cursor:not-allowed"' : ''}>${ICONS.arrowRight} السابق ${prevCh ? `(${prevCh.number})` : ''}</button>
     <button onclick="go('work','${ch.work_id}')" style="flex:0.7">${ICONS.list} كل الفصول</button>
     <button onclick="${nextCh ? `go('read','${nextCh.id}')` : 'return false'}" ${!nextCh ? 'disabled style="opacity:.4;cursor:not-allowed"' : ''}>التالي ${nextCh ? `(${nextCh.number})` : ''} ${ICONS.arrowLeft}</button>
   </div>`;
 }
+
+// ملء الشاشة أثناء القراءة
 function toggleReaderWidth() {
-  readerWide = !readerWide;
-  const b = document.getElementById('readerBody');
-  if (b) b.classList.toggle('wide', readerWide);
+  const body = document.body;
+  const isActive = body.classList.contains('reading-fullscreen');
+  const btn = document.getElementById('fsBtn');
+  
+  if (!isActive) {
+    body.classList.add('reading-fullscreen');
+    const elem = document.documentElement;
+    if (elem.requestFullscreen) elem.requestFullscreen().catch(()=>{});
+    else if (elem.webkitRequestFullscreen) elem.webkitRequestFullscreen();
+    if (btn) btn.innerHTML = ICONS.minimize;
+    toast('وضع القراءة بملء الشاشة — ESC للخروج');
+  } else {
+    body.classList.remove('reading-fullscreen');
+    if (document.fullscreenElement) document.exitFullscreen().catch(()=>{});
+    if (btn) btn.innerHTML = ICONS.maximize;
+  }
+}
+
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && document.body.classList.contains('reading-fullscreen')) {
+    document.body.classList.remove('reading-fullscreen');
+    const btn = document.getElementById('fsBtn');
+    if (btn) btn.innerHTML = ICONS.maximize;
+  }
+});
+
+// تتبع إكمال القراءة
+function setupReaderTracking(chapterId, workId) {
+  if (readerTrackingCleanup) readerTrackingCleanup();
+  if (!session) return;
+  
+  let marked = false;
+  let initialDelayDone = false;
+  
+  setTimeout(() => { initialDelayDone = true; checkBottom(); }, 2000);
+  
+  function checkBottom() {
+    if (marked || !initialDelayDone) return;
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const scrollHeight = document.documentElement.scrollHeight;
+    const windowHeight = window.innerHeight;
+    const scrolled = (scrollTop + windowHeight) / scrollHeight;
+    const contentHeight = scrollHeight - windowHeight;
+    
+    if (contentHeight < 200) {
+      if (!marked) { marked = true; markChapterAsRead(chapterId, workId); }
+      return;
+    }
+    if (scrolled >= 0.98) { marked = true; markChapterAsRead(chapterId, workId); }
+  }
+  
+  const handler = () => checkBottom();
+  window.addEventListener('scroll', handler, { passive: true });
+  window.addEventListener('resize', handler, { passive: true });
+  readerTrackingCleanup = () => {
+    window.removeEventListener('scroll', handler);
+    window.removeEventListener('resize', handler);
+  };
+}
+
+async function markChapterAsRead(chapterId, workId) {
+  if (!session) return;
+  try {
+    const { data, error } = await sb.rpc('mark_chapter_read', { p_chapter_id: chapterId });
+    if (error) return;
+    if (data?.ok) toast('✓ تم وضع علامة الفصل كمقروء');
+  } catch (e) {}
 }
 
 // ============ 10. المكتبة والإشعارات ============
@@ -678,7 +664,7 @@ async function vLibrary() {
       <div class="release-info">
         <h3>${esc(p.works.title)}</h3>
         <div class="release-status">آخر قراءة: الفصل ${p.chapters?.number||'?'}</div>
-        <div class="chapters-mini"><div class="chapter-mini" onclick="go('work','${p.work_id}')"><span>${ICONS.book} متابعة القراءة</span><span class="time">${timeAgo(p.updated_at)}</span></div></div>
+        <div class="chapters-mini"><div class="chapter-mini" onclick="go('work','${p.work_id}')"><span>${ICONS.book} متابعة</span><span class="time">${timeAgo(p.updated_at)}</span></div></div>
       </div>
       <div class="release-cover" onclick="go('work','${p.work_id}')">${p.works.cover_url ? `<img src="${esc(p.works.cover_url)}" alt="">` : ICONS.book}</div>
     </div>`;
@@ -733,20 +719,12 @@ async function vJoin() {
     <button class="btn" onclick="submitJoin()">إرسال الطلب</button>
   </div>`;
 }
-
 async function submitJoin() {
   if (!session) return go('auth');
-  const p = {
-    name: $('#jName').value.trim(),
-    contact: $('#jContact').value.trim(),
-    role: $('#jRole').value,
-    langs: $('#jLangs').value.trim(),
-    bio: $('#jBio').value.trim()
-  };
+  const p = { name:$('#jName').value.trim(), contact:$('#jContact').value.trim(), role:$('#jRole').value, langs:$('#jLangs').value.trim(), bio:$('#jBio').value.trim() };
   if (!p.name || !p.contact) return toast('أكمل الحقول');
   const { error } = await sb.from('join_requests').insert({ user_id: session.user.id, ...p });
-  toast(error ? error.message : 'تم الإرسال');
-  if (!error) route();
+  toast(error?error.message:'تم الإرسال'); if (!error) route();
 }
 
 // ============ 12. المصادقة والنقاط والبحث ============
@@ -826,7 +804,7 @@ async function vAdmin() {
     <div class="field"><label>الحالة</label><select id="awStatus"><option>مستمرة</option><option>متوقفة</option><option>منتهية</option></select></div>
     <div class="field"><label>الأنواع (بفاصلة)</label><input id="awGenres" placeholder="أكشن, فانتازيا"></div>
     <div class="field"><label>رابط صورة الغلاف</label><input id="awCover" placeholder="https://..."></div>
-    <div class="field"><label>الكاتب (اختياري)</label><input id="awAuthor"></div>
+    <div class="field"><label>الكاتب</label><input id="awAuthor"></div>
     <div class="field"><label>الملخص</label><textarea id="awSyn"></textarea></div>
     <button class="btn" onclick="adminAddWork()">حفظ</button>
   </div>
@@ -846,30 +824,16 @@ async function vAdmin() {
     <div class="notice">
       <b>طريقة العمل:</b><br>
       1. نظّم الفصول في مجلد رئيسي، كل فصل في مجلد فرعي.<br>
-      2. أسماء المجلدات الفرعية يجب أن تحتوي على رقم الفصل (مثل: <code>Chapter 001</code> أو <code>1</code> أو <code>الفصل 1</code>).<br>
-      3. اختر العمل ← ارفع المجلد الرئيسي ← سيتم رفع كل الفصول تلقائياً.
+      2. أسماء المجلدات يجب أن تحتوي على رقم الفصل (مثل: <code>Chapter 001</code> أو <code>1</code>).<br>
+      3. اختر العمل ← ارفع المجلد الرئيسي.
     </div>
-    <div class="field">
-      <label>اختر العمل</label>
-      <select id="bulkWork">${(ws||[]).map(w=>`<option value="${w.id}">${esc(w.title)}</option>`).join('')}</select>
-    </div>
-    <div class="field">
-      <label>الوضع الافتراضي للفصول الجديدة</label>
-      <select id="bulkDefault">
-        <option value="free">مجاني</option>
-        <option value="locked">مقفل (يُفتح بالنقاط)</option>
-      </select>
-    </div>
+    <div class="field"><label>اختر العمل</label><select id="bulkWork">${(ws||[]).map(w=>`<option value="${w.id}">${esc(w.title)}</option>`).join('')}</select></div>
+    <div class="field"><label>الوضع الافتراضي</label><select id="bulkDefault"><option value="free">مجاني</option><option value="locked">مقفل</option></select></div>
     <div class="bulk-uploader" id="bulkUploader" onclick="document.getElementById('bulkInput').click()">
       ${ICONS.folder}
       <h4>اختر مجلد الفصول</h4>
-      <p>اضغط هنا لاختيار المجلد الرئيسي<br>سيتم رفع جميع الفصول الفرعية تلقائياً</p>
+      <p>اضغط هنا لاختيار المجلد الرئيسي</p>
       <input type="file" id="bulkInput" webkitdirectory multiple accept="image/*">
-    </div>
-    <div class="bulk-progress" id="bulkProgress">
-      <div class="bulk-progress-bar"><div class="bulk-progress-fill" id="bulkFill"></div></div>
-      <div class="bulk-progress-text" id="bulkText">جارٍ التحضير…</div>
-      <div class="bulk-log" id="bulkLog"></div>
     </div>
   </div>
   <div class="sec-title"><span class="line"></span>${ICONS.plus} إضافة فصل واحد</div>
@@ -889,7 +853,7 @@ async function vAdmin() {
       <div class="manage-cover">${c.kind==='comic' ? ICONS.palette : ICONS.book}</div>
       <div class="manage-info">
         <h4>الفصل ${c.number}${c.title ? `: ${esc(c.title)}` : ''}</h4>
-        <p>${esc(c.works?.title||'')} • ${c.is_locked ? ICONS.lock + ' مقفل' : ICONS.unlock + ' مجاني'}</p>
+        <p>${esc(c.works?.title||'')} • ${c.is_locked ? 'مقفل' : 'مجاني'}</p>
       </div>
       <div class="manage-actions">
         <button class="btn-edit" onclick="editChapter('${c.id}')" title="تعديل">${ICONS.edit}</button>
@@ -922,17 +886,13 @@ async function vAdmin() {
 
 async function adminAddWork() {
   const p = {
-    title: $('#awTitle').value.trim(),
-    type: $('#awType').value,
-    kind: $('#awKind').value,
-    age_rating: $('#awAge').value,
-    status: $('#awStatus').value,
+    title: $('#awTitle').value.trim(), type: $('#awType').value, kind: $('#awKind').value,
+    age_rating: $('#awAge').value, status: $('#awStatus').value,
     genres: $('#awGenres').value.split(',').map(x=>x.trim()).filter(Boolean),
     synopsis: $('#awSyn').value.trim(),
     cover_url: $('#awCover').value.trim() || null,
     author: $('#awAuthor').value.trim() || null,
-    published: true,
-    owner_id: session.user.id
+    published: true, owner_id: session.user.id
   };
   if (!p.title) return toast('أدخل العنوان');
   const { error } = await sb.from('works').insert(p);
@@ -957,17 +917,14 @@ async function editWork(id) {
     <div class="field"><label>الملخص</label><textarea id="ewSyn">${esc(w.synopsis||'')}</textarea></div>
     <div class="modal-actions">
       <button class="cancel" onclick="closeModal()">إلغاء</button>
-      <button class="save" onclick="saveWork('${id}')">حفظ التعديلات</button>
+      <button class="save" onclick="saveWork('${id}')">حفظ</button>
     </div>`;
   modal.classList.add('show');
 }
 async function saveWork(id) {
   const p = {
-    title: $('#ewTitle').value.trim(),
-    type: $('#ewType').value,
-    kind: $('#ewKind').value,
-    age_rating: $('#ewAge').value,
-    status: $('#ewStatus').value,
+    title: $('#ewTitle').value.trim(), type: $('#ewType').value, kind: $('#ewKind').value,
+    age_rating: $('#ewAge').value, status: $('#ewStatus').value,
     genres: $('#ewGenres').value.split(',').map(x=>x.trim()).filter(Boolean),
     cover_url: $('#ewCover').value.trim() || null,
     author: $('#ewAuthor').value.trim() || null,
@@ -978,23 +935,19 @@ async function saveWork(id) {
   toast('تم التعديل'); closeModal(); route();
 }
 async function deleteWork(id, title) {
-  if (!confirm(`هل أنت متأكد من حذف "${title}"؟ سيتم حذف جميع فصوله أيضاً.`)) return;
+  if (!confirm(`هل أنت متأكد من حذف "${title}"؟`)) return;
   const { error } = await sb.from('works').delete().eq('id', id);
   if (error) return toast(error.message);
   toast('تم الحذف'); route();
 }
 
 async function adminAddChapter() {
-  const work_id = $('#acWork').value;
-  const number = Number($('#acNum').value);
-  const title = $('#acTitle').value.trim();
-  const kind = $('#acKind').value;
-  const is_locked = $('#acLock').value === 'true';
-  const content = $('#acContent').value;
+  const work_id = $('#acWork').value, number = Number($('#acNum').value),
+    title = $('#acTitle').value.trim(), kind = $('#acKind').value,
+    is_locked = $('#acLock').value === 'true', content = $('#acContent').value;
   const { data: ch, error } = await sb.from('chapters').insert({ work_id, number, title, kind, is_locked, content, published: true }).select().single();
   if (error) return toast(error.message);
-  const files = [...($('#acFiles').files||[])];
-  const paths = [];
+  const files = [...($('#acFiles').files||[])], paths = [];
   for (let i=0;i<files.length;i++) {
     const f = files[i];
     const path = `${ch.id}/${String(i+1).padStart(3,'0')}-${f.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
@@ -1006,6 +959,7 @@ async function adminAddChapter() {
   await notifyFollowers(work_id, ch.id, number);
   toast('تم الحفظ'); route();
 }
+
 async function notifyFollowers(workId, chapterId, number) {
   const { data: favs } = await sb.from('favorites').select('user_id').eq('work_id', workId);
   if (!favs || !favs.length) return;
@@ -1016,6 +970,7 @@ async function notifyFollowers(workId, chapterId, number) {
   }));
   await sb.from('notifications').insert(notifs);
 }
+
 async function editChapter(id) {
   const { data: c } = await sb.from('chapters').select('*').eq('id', id).maybeSingle();
   if (!c) return toast('الفصل غير موجود');
@@ -1034,19 +989,13 @@ async function editChapter(id) {
   modal.classList.add('show');
 }
 async function saveChapter(id) {
-  const p = {
-    number: Number($('#ecNum').value),
-    title: $('#ecTitle').value.trim(),
-    kind: $('#ecKind').value,
-    is_locked: $('#ecLock').value === 'true',
-    content: $('#ecContent').value
-  };
+  const p = { number: Number($('#ecNum').value), title: $('#ecTitle').value.trim(), kind: $('#ecKind').value, is_locked: $('#ecLock').value === 'true', content: $('#ecContent').value };
   const { error } = await sb.from('chapters').update(p).eq('id', id);
   if (error) return toast(error.message);
   toast('تم التعديل'); closeModal(); route();
 }
 async function deleteChapter(id, label) {
-  if (!confirm(`هل أنت متأكد من حذف ${label}؟`)) return;
+  if (!confirm(`حذف ${label}؟`)) return;
   const { error } = await sb.from('chapters').delete().eq('id', id);
   if (error) return toast(error.message);
   toast('تم الحذف'); route();
@@ -1057,9 +1006,7 @@ function closeModal() {
 }
 async function reviewPay(id, status) {
   const tx = $(`#tx-${id}`)?.value.trim() || null;
-  const { error } = await sb.rpc('admin_review_payment', {
-    p_id: id, p_status: status, p_note: tx ? `TX: ${tx}` : null
-  });
+  const { error } = await sb.rpc('admin_review_payment', { p_id: id, p_status: status, p_note: tx ? `TX: ${tx}` : null });
   toast(error ? error.message : 'تم'); if (!error) route();
 }
 async function reviewJoin(id, status) {
@@ -1076,17 +1023,14 @@ function initBulkUploader() {
   const input = document.getElementById('bulkInput');
   const uploader = document.getElementById('bulkUploader');
   if (!input || !uploader) return;
-
   input.addEventListener('change', e => {
     const files = [...e.target.files];
     if (files.length) startBulkUpload(files);
   });
-
   uploader.addEventListener('dragover', e => { e.preventDefault(); uploader.classList.add('dragover'); });
   uploader.addEventListener('dragleave', () => uploader.classList.remove('dragover'));
   uploader.addEventListener('drop', e => {
-    e.preventDefault();
-    uploader.classList.remove('dragover');
+    e.preventDefault(); uploader.classList.remove('dragover');
     const files = [...e.dataTransfer.files];
     if (files.length) startBulkUpload(files);
   });
@@ -1095,24 +1039,24 @@ function initBulkUploader() {
 async function startBulkUpload(files) {
   const workId = document.getElementById('bulkWork')?.value;
   const defaultLock = document.getElementById('bulkDefault')?.value === 'locked';
-  const progress = document.getElementById('bulkProgress');
-  const fill = document.getElementById('bulkFill');
-  const text = document.getElementById('bulkText');
-  const log = document.getElementById('bulkLog');
-
   if (!workId) return toast('اختر العمل أولاً');
-  progress.classList.add('show');
-  log.innerHTML = '';
+
+  const floating = document.getElementById('bulkFloating');
+  if (floating) { floating.classList.add('show'); floating.classList.remove('minimized'); }
+
+  const fill = document.getElementById('bulkFloatingFill');
+  const text = document.getElementById('bulkFloatingText');
+  const log = document.getElementById('bulkFloatingLog');
+  if (log) log.innerHTML = '';
 
   const logMsg = (msg, cls = 'info') => {
+    if (!log) return;
     const line = document.createElement('div');
-    line.className = cls;
-    line.textContent = msg;
-    log.appendChild(line);
-    log.scrollTop = log.scrollHeight;
+    line.className = cls; line.textContent = msg;
+    log.appendChild(line); log.scrollTop = log.scrollHeight;
   };
 
-  logMsg(`تم العثور على ${files.length} ملف`, 'info');
+  logMsg(`بدء الرفع — ${files.length} ملف`, 'info');
 
   const chaptersMap = new Map();
   files.forEach(f => {
@@ -1127,8 +1071,8 @@ async function startBulkUpload(files) {
   });
 
   if (!chaptersMap.size) {
-    logMsg('لم أجد أي مجلدات فصول. تأكد من تنظيم المجلدات.', 'err');
-    text.textContent = 'فشل: لا توجد مجلدات';
+    logMsg('لم أجد مجلدات فصول.', 'err');
+    if (text) text.textContent = 'فشل: لا توجد مجلدات';
     return;
   }
 
@@ -1147,17 +1091,16 @@ async function startBulkUpload(files) {
 
   let done = 0;
   const total = chapters.length;
-  let successCount = 0;
-  let errorCount = 0;
+  let successCount = 0, errorCount = 0;
 
   for (const chap of chapters) {
     try {
-      logMsg(`الفصل ${chap.number} (${chap.folder}) — ${chap.files.length} صورة…`, 'info');
+      logMsg(`الفصل ${chap.number} (${chap.files.length} صورة)…`, 'info');
       const { data: ch, error: chErr } = await sb.from('chapters').insert({
         work_id: workId, number: chap.number, title: chap.title,
         kind: 'comic', is_locked: defaultLock, published: true
       }).select().single();
-      if (chErr) throw new Error('فشل إنشاء الفصل: ' + chErr.message);
+      if (chErr) throw new Error(chErr.message);
 
       const paths = [];
       for (let i = 0; i < chap.files.length; i++) {
@@ -1165,26 +1108,34 @@ async function startBulkUpload(files) {
         const ext = f.name.split('.').pop() || 'jpg';
         const path = `${ch.id}/${String(i + 1).padStart(3, '0')}.${ext}`;
         const r = await sb.storage.from('chapters').upload(path, f, { upsert: true });
-        if (r.error) throw new Error('فشل رفع صورة: ' + r.error.message);
+        if (r.error) throw new Error(r.error.message);
         paths.push(path);
       }
       await sb.from('chapters').update({ pages: paths }).eq('id', ch.id);
       successCount++;
-      logMsg(`الفصل ${chap.number} — تم (${paths.length} صورة)`, 'ok');
+      logMsg(`✅ الفصل ${chap.number} — تم`, 'ok');
     } catch (err) {
       errorCount++;
-      logMsg(`الفصل ${chap.number}: ${err.message}`, 'err');
+      logMsg(`❌ الفصل ${chap.number}: ${err.message}`, 'err');
     }
     done++;
     const pct = Math.round((done / total) * 100);
-    fill.style.width = pct + '%';
-    text.textContent = `${done} / ${total} (${pct}%)`;
+    if (fill) fill.style.width = pct + '%';
+    if (text) text.textContent = `${done} / ${total} (${pct}%) — نجح ${successCount} | فشل ${errorCount}`;
   }
 
-  logMsg(`انتهى! النجاح: ${successCount} | الفشل: ${errorCount}`, successCount > 0 ? 'ok' : 'err');
-  text.textContent = `انتهى الرفع — نجح ${successCount} من ${total}`;
-  toast(`تم رفع ${successCount} فصل بنجاح`);
-  setTimeout(() => route(), 2000);
+  logMsg(`🎉 انتهى — نجح ${successCount} من ${total}`, 'ok');
+  if (text) text.textContent = `انتهى — نجح ${successCount} من ${total}`;
+  toast(`تم رفع ${successCount} فصل`);
+  setTimeout(() => {
+    const f = document.getElementById('bulkFloating');
+    if (f) f.classList.add('minimized');
+  }, 5000);
+}
+
+function closeBulkFloating() {
+  const f = document.getElementById('bulkFloating');
+  if (f) { f.classList.remove('show'); f.classList.remove('minimized'); }
 }
 
 // ============ 15. الراوتر ============
@@ -1196,6 +1147,8 @@ async function route() {
   $$('.sidebar-nav a').forEach(a => a.classList.toggle('on', a.dataset.r === page));
   const s = $('#sidebar'); if (s) s.classList.remove('show');
   const o = $('#overlay'); if (o) o.classList.remove('show');
+
+  if (readerTrackingCleanup) { readerTrackingCleanup(); readerTrackingCleanup = null; }
 
   app.innerHTML = '<div class="loading">جارٍ التحميل</div>';
 
