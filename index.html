@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="styles.css">
 <link rel="icon" type="image/png" href="logo.png">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="config.js"></script>
 </head>
 <body>
@@ -20,20 +21,18 @@
 <button class="menu-btn" onclick="toggleMenu()" aria-label="القائمة">
 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="butt"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
 </button>
-<a class="logo" href="#/" title="Alpha Comix">
-<img src="logo.png" alt="Alpha Comix" class="logo-img">
-</a>
+<a class="logo" href="#/" title="Alpha Comix"><img src="logo.png" alt="Alpha Comix" class="logo-img"></a>
 <div class="hacts">
 <button class="icon-btn" id="notifBtn" onclick="go('notifications')" style="display:none;position:relative" aria-label="الإشعارات">
-<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt" stroke-linejoin="miter"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
 <span class="notif-dot" id="notifDot" style="display:none"></span>
 </button>
-<button class="icon-btn" id="themeBtn" onclick="toggleTheme()" aria-label="الوضع الليلي"></button>
-<button class="icon-btn" id="adminBtn" style="display:none;" onclick="go('admin')" aria-label="لوحة الإدارة">
-<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt" stroke-linejoin="miter"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+<button class="icon-btn" id="themeBtn" onclick="toggleTheme()" aria-label="الوضع"></button>
+<button class="icon-btn" id="adminBtn" style="display:none;" onclick="go('admin')" aria-label="الإدارة">
+<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 110-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
 </button>
 <button class="icon-btn" id="authBtn" onclick="go('auth')" aria-label="الحساب">
-<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt" stroke-linejoin="miter"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
 </button>
 </div>
 </div>
@@ -47,19 +46,16 @@
 <button class="close-btn" onclick="toggleMenu()">✕</button>
 </div>
 <nav class="sidebar-nav">
-<a href="#/" data-r="home" onclick="toggleMenu()"><span class="nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt" stroke-linejoin="miter"><path d="M3 10l9-7 9 7v11H3z"/><path d="M9 21V13h6v8"/></svg></span>الرئيسية</a>
-<a href="#/comics" data-r="comics" onclick="toggleMenu()"><span class="nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt" stroke-linejoin="miter"><path d="M2 4h7l3 3h10v13H2z"/></svg></span>قائمة الأعمال</a>
-<a href="#/novels" data-r="novels" onclick="toggleMenu()"><span class="nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt" stroke-linejoin="miter"><path d="M4 4h16v16H4z"/><path d="M12 4v16"/></svg></span>الروايات</a>
-<a href="#/library" data-r="library" onclick="toggleMenu()"><span class="nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt" stroke-linejoin="miter"><path d="M3 3h4v18H3zM9 3h4v18H9zM16 4l4 1-3 16-4-1z"/></svg></span>مكتبتي</a>
-<a href="#/schedule" data-r="schedule" onclick="toggleMenu()"><span class="nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt" stroke-linejoin="miter"><path d="M3 4h18v18H3z"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>جدول الإصدارات</a>
-<a href="#/notifications" data-r="notifications" onclick="toggleMenu()"><span class="nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt" stroke-linejoin="miter"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></span>الإشعارات</a>
-<a href="#/teams" data-r="teams" onclick="toggleMenu()"><span class="nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt" stroke-linejoin="miter"><path d="M12 2l9 4v6c0 5-4 9-9 10-5-1-9-5-9-10V6z"/></svg></span>الفرق</a>
-<a href="#/points" data-r="points" onclick="toggleMenu()"><span class="nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt" stroke-linejoin="miter"><path d="M3 19l-1-10 5 4 5-8 5 8 5-4-1 10z"/><path d="M3 19h18"/></svg></span>النقاط</a>
-<a href="#/join" data-r="join" onclick="toggleMenu()"><span class="nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt" stroke-linejoin="miter"><path d="M11 17l-4 4-6-6 6-6"/><path d="M13 7l4-4 6 6-6 6"/><path d="M11 11l2 2"/></svg></span>انضم كمساعد</a>
+<a href="#/" data-r="home" onclick="toggleMenu()"><span class="nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt"><path d="M3 10l9-7 9 7v11H3z"/><path d="M9 21V13h6v8"/></svg></span>الرئيسية</a>
+<a href="#/comics" data-r="comics" onclick="toggleMenu()"><span class="nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt"><path d="M2 4h7l3 3h10v13H2z"/></svg></span>قائمة الأعمال</a>
+<a href="#/novels" data-r="novels" onclick="toggleMenu()"><span class="nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt"><path d="M4 4h16v16H4z"/><path d="M12 4v16"/></svg></span>الروايات</a>
+<a href="#/library" data-r="library" onclick="toggleMenu()"><span class="nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt"><path d="M3 3h4v18H3zM9 3h4v18H9zM16 4l4 1-3 16-4-1z"/></svg></span>مكتبتي</a>
+<a href="#/notifications" data-r="notifications" onclick="toggleMenu()"><span class="nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg></span>الإشعارات</a>
+<a href="#/teams" data-r="teams" onclick="toggleMenu()"><span class="nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt"><path d="M12 2l9 4v6c0 5-4 9-9 10-5-1-9-5-9-10V6z"/></svg></span>الفرق</a>
+<a href="#/points" data-r="points" onclick="toggleMenu()"><span class="nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt"><path d="M3 19l-1-10 5 4 5-8 5 8 5-4-1 10z"/><path d="M3 19h18"/></svg></span>النقاط</a>
+<a href="#/join" data-r="join" onclick="toggleMenu()"><span class="nav-icon"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt"><path d="M11 17l-4 4-6-6 6-6"/><path d="M13 7l4-4 6 6-6 6"/><path d="M11 11l2 2"/></svg></span>انضم كمساعد</a>
 </nav>
-<div class="sidebar-foot">
-<div class="user-mini" id="userMini"></div>
-</div>
+<div class="sidebar-foot"><div class="user-mini" id="userMini"></div></div>
 </aside>
 
 <main id="app"><div class="loading">جارٍ التحميل</div></main>
@@ -68,17 +64,12 @@
   <div class="modal" id="modalContent"></div>
 </div>
 
-<!-- شريط تقدم الرفع العائم -->
 <div class="bulk-floating" id="bulkFloating">
   <div class="bulk-floating-head">
     <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="butt"><path d="M12 2l10 5v10l-10 5-10-5V7z"/><path d="M2 7l10 5 10-5M12 12v10"/></svg>
     <span>رفع الفصول</span>
-    <button class="bulk-minimize" onclick="document.getElementById('bulkFloating').classList.toggle('minimized')" title="تصغير">
-      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="butt"><path d="M5 12h14"/></svg>
-    </button>
-    <button class="bulk-close" onclick="closeBulkFloating()" title="إغلاق">
-      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="butt"><path d="M6 6l12 12M18 6L6 18"/></svg>
-    </button>
+    <button class="bulk-minimize" onclick="document.getElementById('bulkFloating').classList.toggle('minimized')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="butt"><path d="M5 12h14"/></svg></button>
+    <button class="bulk-close" onclick="closeBulkFloating()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="butt"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
   <div class="bulk-floating-body">
     <div class="bulk-floating-bar"><div class="bulk-floating-fill" id="bulkFloatingFill"></div></div>
@@ -87,12 +78,10 @@
   </div>
 </div>
 
-<footer>
-<div class="footer-inner">
+<footer><div class="footer-inner">
 <img src="logo.png" alt="Alpha Comix" class="footer-logo">
 <span>© 2025 Alpha Comix — جميع الحقوق محفوظة</span>
-</div>
-</footer>
+</div></footer>
 <div id="toast"></div>
 <script src="app.js"></script>
 </body>
