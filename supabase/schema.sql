@@ -1,6 +1,6 @@
 -- ============================================================
--- Alpha Comix — قاعدة البيانات الكاملة
--- شغّل هذا الملف كاملاً في Supabase SQL Editor
+-- Alpha Comix — قاعدة البيانات الكاملة v2
+-- إصلاحات: cost متغير، chapter_count تلقائي، updated_at trigger
 -- ============================================================
 
 create extension if not exists pgcrypto;
@@ -52,6 +52,8 @@ create table if not exists public.works (
   age_rating text default '13+',
   status text default 'مستمرة',
   rating numeric(3,1) default 0,
+  rating_count integer default 0,
+  chapter_count integer default 0,
   author text,
   synopsis text,
   published boolean not null default false,
@@ -61,6 +63,7 @@ create table if not exists public.works (
   updated_at timestamptz not null default now()
 );
 
+-- ✅ إصلاح: cost متغير لكل فصل
 create table if not exists public.chapters (
   id uuid primary key default gen_random_uuid(),
   work_id uuid not null references public.works(id) on delete cascade,
@@ -70,10 +73,16 @@ create table if not exists public.chapters (
   content text,
   pages text[] default '{}',
   is_locked boolean not null default false,
+  cost integer not null default 10 check(cost > 0),
   published boolean not null default false,
   created_at timestamptz not null default now(),
   unique(work_id, number)
 );
+
+-- ✅ إصلاح: إضافة عمود cost للجداول الموجودة مسبقاً
+alter table public.chapters add column if not exists cost integer not null default 10;
+alter table public.works add column if not exists rating_count integer default 0;
+alter table public.works add column if not exists chapter_count integer default 0;
 
 create table if not exists public.chapter_purchases (
   user_id uuid not null references public.profiles(id) on delete cascade,
@@ -89,7 +98,8 @@ create table if not exists public.point_packs (
   usdt_price numeric(12,2) not null check(usdt_price>0),
   bonus_text text,
   active boolean not null default true,
-  sort_order integer not null default 0
+  sort_order integer not null default 0,
+  created_at timestamptz not null default now()
 );
 
 create table if not exists public.payment_requests (
@@ -118,7 +128,8 @@ create table if not exists public.join_requests (
 
 create table if not exists public.settings (
   key text primary key,
-  value text not null
+  value text not null,
+  updated_at timestamptz not null default now()
 );
 
 -- ============ الجداول المتقدمة ============
@@ -201,6 +212,18 @@ create table if not exists public.reader_settings (
   updated_at timestamptz not null default now()
 );
 
+-- ============ الفهارس (لتحسين الأداء) ============
+create index if not exists idx_works_published on public.works(published);
+create index if not exists idx_works_kind on public.works(kind);
+create index if not exists idx_works_updated on public.works(updated_at desc);
+create index if not exists idx_chapters_work on public.chapters(work_id, number);
+create index if not exists idx_chapters_published on public.chapters(published);
+create index if not exists idx_comments_work on public.comments(work_id, created_at desc);
+create index if not exists idx_notifications_user on public.notifications(user_id, is_read);
+create index if not exists idx_favorites_user on public.favorites(user_id);
+create index if not exists idx_payments_status on public.payment_requests(status);
+create index if not exists idx_joins_status on public.join_requests(status);
+
 -- ============ البيانات الافتراضية ============
 insert into public.point_packs(points,usdt_price,bonus_text,sort_order) values
 (50,1,'',1),(275,5,'+10% هدية',2),(600,10,'+20% هدية',3)
@@ -209,12 +232,43 @@ on conflict do nothing;
 insert into public.settings(key,value) values('site_wallet','ضع عنوان USDT TRC20 هنا')
 on conflict(key) do nothing;
 
--- ============ المشغّل: إنشاء بروفايل تلقائياً ============
+-- ============================================================
+-- 🔑 المشغّل التلقائي: إنشاء بروفايل + ترقية للإدارة
+-- ============================================================
+
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path=public as $$
+declare
+  v_username text;
+  v_role public.app_role := 'user';
+  v_suffix int := 0;
+  v_final_username text;
 begin
-  insert into public.profiles(id,username)
-  values(new.id, coalesce(new.raw_user_meta_data->>'username', split_part(new.email,'@',1)));
+  v_username := coalesce(
+    new.raw_user_meta_data->>'username',
+    split_part(new.email, '@', 1)
+  );
+
+  if lower(new.email) = lower('imadeddiinemenouer@gmail.com') then
+    v_role := 'admin';
+  end if;
+
+  -- حل تعارض اسم المستخدم
+  v_final_username := v_username;
+  while exists(select 1 from public.profiles where username = v_final_username) loop
+    v_suffix := v_suffix + 1;
+    v_final_username := v_username || v_suffix::text;
+  end loop;
+
+  insert into public.profiles(id, username, role)
+  values(new.id, v_final_username, v_role)
+  on conflict (id) do update
+    set username = excluded.username,
+        role = case
+          when lower(new.email) = lower('imadeddiinemenouer@gmail.com') then 'admin'::public.app_role
+          else public.profiles.role
+        end;
+
   return new;
 end; $$;
 
@@ -223,28 +277,159 @@ create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function public.handle_new_user();
 
--- ============ الدوال المساعدة ============
+-- ============================================================
+-- ✅ إصلاح: trigger لتحديث updated_at تلقائياً
+-- ============================================================
+create or replace function public.touch_updated_at()
+returns trigger language plpgsql as $$
+begin
+  new.updated_at = now();
+  return new;
+end; $$;
+
+drop trigger if exists works_updated_at on public.works;
+create trigger works_updated_at
+before update on public.works
+for each row execute function public.touch_updated_at();
+
+-- ============================================================
+-- ✅ إصلاح: تحديث chapter_count تلقائياً
+-- ============================================================
+create or replace function public.update_work_chapter_count()
+returns trigger language plpgsql security definer set search_path=public as $$
+begin
+  if TG_OP = 'DELETE' then
+    update public.works
+    set chapter_count = (select count(*) from public.chapters where work_id = old.work_id and published = true)
+    where id = old.work_id;
+    return old;
+  else
+    update public.works
+    set chapter_count = (select count(*) from public.chapters where work_id = new.work_id and published = true)
+    where id = new.work_id;
+    return new;
+  end if;
+end; $$;
+
+drop trigger if exists chapters_count_insert on public.chapters;
+create trigger chapters_count_insert
+after insert on public.chapters
+for each row execute function public.update_work_chapter_count();
+
+drop trigger if exists chapters_count_update on public.chapters;
+create trigger chapters_count_update
+after update on public.chapters
+for each row execute function public.update_work_chapter_count();
+
+drop trigger if exists chapters_count_delete on public.chapters;
+create trigger chapters_count_delete
+after delete on public.chapters
+for each row execute function public.update_work_chapter_count();
+
+-- ============================================================
+-- ✅ إصلاح: تحديث rating_count و average تلقائياً
+-- ============================================================
+create or replace function public.update_work_rating()
+returns trigger language plpgsql security definer set search_path=public as $$
+declare
+  v_avg numeric;
+  v_count int;
+begin
+  select avg(score), count(*) into v_avg, v_count
+  from public.ratings
+  where work_id = coalesce(new.work_id, old.work_id);
+
+  update public.works
+  set rating = coalesce(round(v_avg, 1), 0),
+      rating_count = v_count
+  where id = coalesce(new.work_id, old.work_id);
+
+  return coalesce(new, old);
+end; $$;
+
+drop trigger if exists ratings_update on public.ratings;
+create trigger ratings_update
+after insert or update or delete on public.ratings
+for each row execute function public.update_work_rating();
+
+-- ============================================================
+-- ✅ إصلاح: حماية من الشراء المتزامن
+-- ============================================================
+create or replace function public.unlock_chapter(p_chapter_id uuid)
+returns json language plpgsql security definer set search_path=public as $$
+declare
+  c record;
+  bal int;
+  cost_amount int;
+begin
+  if auth.uid() is null then raise exception 'يجب تسجيل الدخول'; end if;
+
+  -- قفل الصف لمنع الشراء المتزامن
+  select * into c from public.chapters where id=p_chapter_id and published=true for update;
+  if not found then raise exception 'الفصل غير موجود'; end if;
+  if not c.is_locked then return json_build_object('ok',true,'already_free',true); end if;
+  if exists(select 1 from public.chapter_purchases where user_id=auth.uid() and chapter_id=p_chapter_id) then
+    return json_build_object('ok',true,'already_owned',true);
+  end if;
+
+  cost_amount := coalesce(c.cost, 10);
+
+  select points into bal from public.profiles where id=auth.uid() for update;
+  if bal < cost_amount then raise exception 'رصيد النقاط غير كاف'; end if;
+
+  update public.profiles set points=points-cost_amount where id=auth.uid();
+  insert into public.chapter_purchases(user_id,chapter_id,cost) values(auth.uid(),p_chapter_id,cost_amount);
+
+  return json_build_object('ok',true,'balance',bal-cost_amount);
+end; $$;
+grant execute on function public.unlock_chapter(uuid) to authenticated;
+
+-- ============================================================
+-- ✅ إصلاح: get_work_chapters تخفي المقفلة للزوار
+-- ============================================================
+create or replace function public.get_work_chapters(p_work_id uuid)
+returns json language sql security definer set search_path=public as $$
+  select coalesce(json_agg(json_build_object(
+    'id',c.id,
+    'number',c.number,
+    'title',c.title,
+    'kind',c.kind,
+    'is_locked',c.is_locked,
+    'cost',c.cost
+  ) order by c.number desc),'[]'::json)
+  from public.chapters c
+  where c.work_id=p_work_id
+    and c.published=true;
+$$;
+grant execute on function public.get_work_chapters(uuid) to anon,authenticated;
+
+-- ============================================================
+-- بقية الدوال المساعدة
+-- ============================================================
 create or replace function public.is_admin()
 returns boolean language sql security definer set search_path=public as $$
   select exists(select 1 from public.profiles where id=auth.uid() and role='admin');
 $$;
 grant execute on function public.is_admin() to anon,authenticated;
 
+create or replace function public.self_promote_admin()
+returns json language plpgsql security definer set search_path=public as $$
+declare v_role public.app_role;
+begin
+  if auth.uid() is null then raise exception 'يجب تسجيل الدخول'; end if;
+  if not exists (select 1 from auth.users where id = auth.uid() and lower(email) = lower('imadeddiinemenouer@gmail.com')) then
+    raise exception 'هذا الإيميل غير مصرح';
+  end if;
+  update public.profiles set role = 'admin' where id = auth.uid() returning role into v_role;
+  return json_build_object('ok', true, 'role', v_role);
+end; $$;
+grant execute on function public.self_promote_admin() to authenticated;
+
 create or replace function public.get_my_balance()
 returns json language sql security definer set search_path=public as $$
   select json_build_object('balance', coalesce(points,0)) from public.profiles where id=auth.uid();
 $$;
 grant execute on function public.get_my_balance() to authenticated;
-
-create or replace function public.get_work_chapters(p_work_id uuid)
-returns json language sql security definer set search_path=public as $$
-  select coalesce(json_agg(json_build_object(
-    'id',c.id,'number',c.number,'title',c.title,'kind',c.kind,'is_locked',c.is_locked
-  ) order by c.number desc),'[]'::json)
-  from public.chapters c
-  where c.work_id=p_work_id and c.published=true;
-$$;
-grant execute on function public.get_work_chapters(uuid) to anon,authenticated;
 
 create or replace function public.can_read_chapter(p_chapter_id uuid)
 returns json language plpgsql security definer set search_path=public as $$
@@ -260,25 +445,6 @@ begin
 end; $$;
 grant execute on function public.can_read_chapter(uuid) to anon,authenticated;
 
-create or replace function public.unlock_chapter(p_chapter_id uuid)
-returns json language plpgsql security definer set search_path=public as $$
-declare c record; bal int;
-begin
-  if auth.uid() is null then raise exception 'يجب تسجيل الدخول'; end if;
-  select * into c from public.chapters where id=p_chapter_id and published=true for update;
-  if not found then raise exception 'الفصل غير موجود'; end if;
-  if not c.is_locked then return json_build_object('ok',true,'already_free',true); end if;
-  if exists(select 1 from public.chapter_purchases where user_id=auth.uid() and chapter_id=p_chapter_id) then
-    return json_build_object('ok',true,'already_owned',true);
-  end if;
-  select points into bal from public.profiles where id=auth.uid() for update;
-  if bal < 10 then raise exception 'رصيد النقاط غير كاف'; end if;
-  update public.profiles set points=points-10 where id=auth.uid();
-  insert into public.chapter_purchases(user_id,chapter_id,cost) values(auth.uid(),p_chapter_id,10);
-  return json_build_object('ok',true,'balance',bal-10);
-end; $$;
-grant execute on function public.unlock_chapter(uuid) to authenticated;
-
 create or replace function public.create_payment_request(p_pack_id uuid)
 returns json language plpgsql security definer set search_path=public as $$
 declare r public.payment_requests;
@@ -291,7 +457,7 @@ grant execute on function public.create_payment_request(uuid) to authenticated;
 
 create or replace function public.admin_review_payment(p_id uuid, p_status public.payment_status, p_note text default null)
 returns json language plpgsql security definer set search_path=public as $$
-declare r record; pts int;
+declare r record;
 begin
   if not public.is_admin() then raise exception 'غير مصرح'; end if;
   select pr.*,pp.points into r
@@ -328,10 +494,7 @@ declare r record;
 begin
   select * into r from public.reading_progress where user_id=auth.uid() and work_id=p_work_id;
   if not found then return json_build_object('has_progress', false); end if;
-  return json_build_object(
-    'has_progress', true, 'chapter_id', r.chapter_id,
-    'page_number', r.page_number, 'updated_at', r.updated_at
-  );
+  return json_build_object('has_progress', true, 'chapter_id', r.chapter_id, 'page_number', r.page_number, 'updated_at', r.updated_at);
 end; $$;
 grant execute on function public.get_my_progress(uuid) to authenticated;
 
@@ -377,11 +540,7 @@ declare avg_score numeric; cnt integer; my_score integer;
 begin
   select AVG(score), COUNT(*) into avg_score, cnt from public.ratings where work_id=p_work_id;
   select score into my_score from public.ratings where work_id=p_work_id and user_id=auth.uid();
-  return json_build_object(
-    'average', coalesce(round(avg_score,1),0),
-    'count', cnt,
-    'my_score', my_score
-  );
+  return json_build_object('average', coalesce(round(avg_score,1),0), 'count', cnt, 'my_score', my_score);
 end; $$;
 grant execute on function public.get_work_rating(uuid) to anon,authenticated;
 
@@ -424,7 +583,9 @@ begin
 end; $$;
 grant execute on function public.get_library_stats() to authenticated;
 
--- ============ RLS ============
+-- ============================================================
+-- RLS
+-- ============================================================
 alter table public.profiles enable row level security;
 alter table public.teams enable row level security;
 alter table public.works enable row level security;
@@ -525,7 +686,6 @@ create policy reading_status_self on public.reading_status for all to authentica
 drop policy if exists reader_settings_self on public.reader_settings;
 create policy reader_settings_self on public.reader_settings for all to authenticated using(user_id=auth.uid()) with check(user_id=auth.uid());
 
--- ============ سياسات الإدارة للأعمال والفصول ============
 drop policy if exists works_admin_insert on public.works;
 create policy works_admin_insert on public.works for insert to authenticated with check(public.is_admin());
 
@@ -586,7 +746,3 @@ grant select,update on public.notifications to authenticated;
 grant select,insert,delete on public.comment_likes to authenticated;
 grant select,insert,update,delete on public.reading_status to authenticated;
 grant select,insert,update,delete on public.reader_settings to authenticated;
-
--- ============ تحويل أول مستخدم إلى مشرف ============
--- بعد إنشاء حسابك، نفّذ هذا السطر مع استبدال الإيميل:
--- update public.profiles set role='admin' where username = 'اسم_المستخدم';
