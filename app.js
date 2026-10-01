@@ -2,6 +2,7 @@
    ALPHA COMIX — التطبيق الكامل
    ============================================================ */
 
+// ============ 1. الإعداد ============
 const C = window.NOKTA_CONFIG || {};
 const hasConfig = C.supabaseUrl && C.supabasePublishableKey && !C.supabaseUrl.includes('YOUR_') && !C.supabasePublishableKey.includes('YOUR_');
 const sb = hasConfig ? supabase.createClient(C.supabaseUrl, C.supabasePublishableKey) : null;
@@ -17,6 +18,7 @@ let readerTrackingCleanup = null;
 let adminTab = 'overview';
 let adminSearchQuery = '';
 let adminChartInstance = null;
+let readerSettings = { reading_mode: 'webtoon', font_size: 18, line_height: 2.2, bg_color: 'default', brightness: 100, reading_direction: 'rtl' };
 
 const $ = s => document.querySelector(s);
 const $$ = s => document.querySelectorAll(s);
@@ -27,6 +29,7 @@ const STATIC_AGES = ['13+', '16+', '18+'];
 const STATIC_STATUS = ['مستمرة', 'متوقفة', 'منتهية'];
 const STATIC_GENRES = ['أكشن','فانتازيا','رومانسية','غموض','نظام','دراما','مغامرة','مدرسي','شونين','قوى خاصة','ناجٍ','مصاصين','سحر','مملكة','تاريخي','ارتقاء','رياضة','خيال','حياة يومية','جوسي','فنون قتالية','سينين','شوجو','إيسيكاي','ميكا','رعب','نفسي','عسكري','موسيقي'];
 
+// ============ 2. الأيقونات ============
 const SVG_DEFS = `<defs>
 <linearGradient id="icoGold" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f0d78a"/><stop offset="50%" stop-color="#c9a961"/><stop offset="100%" stop-color="#8b6f2f"/></linearGradient>
 <linearGradient id="icoGoldV" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#e0c88a"/><stop offset="100%" stop-color="#8b6f2f"/></linearGradient>
@@ -41,8 +44,6 @@ const ICONS = {
   settings: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2l1.5 2.3 2.7-.3 1 2.5 2.5 1-.3 2.7L21.7 12l-2.3 1.5.3 2.7-2.5 1-1 2.5-2.7-.3L12 22l-1.5-2.3-2.7.3-1-2.5-2.5-1 .3-2.7L2.3 12l2.3-1.5-.3-2.7 2.5-1 1-2.5 2.7.3z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><circle cx="12" cy="12" r="3.2" fill="#0f1117" stroke="url(#icoRed)" stroke-width="1"/></g></svg>`,
   user: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><circle cx="12" cy="8" r="4.5" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M3 21c0-4.5 4-8 9-8s9 3.5 9 8z" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.6"/></g></svg>`,
   search: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="url(#icoGold)" stroke-width="2"/><line x1="15.5" y1="15.5" x2="21" y2="21" stroke="url(#icoRed)" stroke-width="2.5" stroke-linecap="butt"/></g></svg>`,
-  home: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2L2 11h3v11h14V11h3z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><rect x="9" y="13" width="6" height="9" fill="#0f1117" stroke="#8b6f2f" stroke-width="0.6"/></g></svg>`,
-  palette: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10c1 0 1.8-.7 1.8-1.6 0-.4-.2-.8-.4-1.1-.2-.3-.4-.6-.4-1 0-.9.8-1.6 1.7-1.6H17A5 5 0 0 0 22 11c0-5-4.5-9-10-9z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><circle cx="6.5" cy="12.5" r="1.3" fill="#b91c37"/><circle cx="9.5" cy="7.5" r="1.3" fill="#7c5cff"/><circle cx="15" cy="7.5" r="1.3" fill="#2ecc71"/><circle cx="18" cy="12.5" r="1.3" fill="#f5b942"/></g></svg>`,
   book: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M2 4v15c0 1 1 2 2 2h6V6H4c-1 0-2-1-2-2z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M22 4v15c0 1-1 2-2 2h-6V6h6c1 0 2-1 2-2z" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.6"/><line x1="12" y1="4" x2="12" y2="21" stroke="#b91c37" stroke-width="0.8"/></g></svg>`,
   library: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><rect x="3" y="3" width="4.5" height="18" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.5"/><rect x="9" y="3" width="4.5" height="18" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.5"/><path d="M16 4.5l4 1-2.5 15-4-1z" fill="url(#icoRed)" stroke="#8b6f2f" stroke-width="0.5"/></g></svg>`,
   shield: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2L3 6v6c0 5 4 9 9 10 5-1 9-5 9-10V6z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M12 7v9M8 12h8" stroke="#b91c37" stroke-width="1"/></g></svg>`,
@@ -74,10 +75,12 @@ const ICONS = {
   sliders: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><line x1="4" y1="6" x2="20" y2="6" stroke="url(#icoGoldV)" stroke-width="2"/><line x1="4" y1="12" x2="20" y2="12" stroke="url(#icoGoldV)" stroke-width="2"/><line x1="4" y1="18" x2="20" y2="18" stroke="url(#icoGoldV)" stroke-width="2"/><circle cx="9" cy="6" r="2.5" fill="url(#icoGold)" stroke="#b91c37" stroke-width="0.6"/><circle cx="15" cy="12" r="2.5" fill="url(#icoGold)" stroke="#b91c37" stroke-width="0.6"/><circle cx="7" cy="18" r="2.5" fill="url(#icoGold)" stroke="#b91c37" stroke-width="0.6"/></g></svg>`,
   maximize: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g stroke="url(#icoGold)" stroke-width="2.5" stroke-linecap="butt" fill="none"><path d="M8 3H3v5M21 8V3h-5M3 16v5h5M16 21h5v-5"/></g></svg>`,
   minimize: `<svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g stroke="url(#icoGold)" stroke-width="2.5" stroke-linecap="butt" fill="none"><path d="M8 3v3H5M16 3v3h3M8 21v-3H5M16 21v-3h3"/></g></svg>`,
-  grid: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><rect x="3" y="3" width="7" height="7" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.5"/><rect x="14" y="3" width="7" height="7" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.5"/><rect x="3" y="14" width="7" height="7" fill="url(#icoGoldV)" stroke="#8b6f2f" stroke-width="0.5"/><rect x="14" y="14" width="7" height="7" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.5"/></g></svg>`
+  clock: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><circle cx="12" cy="12" r="9" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><path d="M12 6v6l4 2" fill="none" stroke="#0f1117" stroke-width="2" stroke-linecap="butt"/></g></svg>`,
+  palette: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2A10 10 0 0 0 2 12a10 10 0 0 0 10 10c1 0 1.8-.7 1.8-1.6 0-.4-.2-.8-.4-1.1-.2-.3-.4-.6-.4-1 0-.9.8-1.6 1.7-1.6H17A5 5 0 0 0 22 11c0-5-4.5-9-10-9z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><circle cx="6.5" cy="12.5" r="1.3" fill="#b91c37"/><circle cx="9.5" cy="7.5" r="1.3" fill="#7c5cff"/><circle cx="15" cy="7.5" r="1.3" fill="#2ecc71"/><circle cx="18" cy="12.5" r="1.3" fill="#f5b942"/></g></svg>`,
+  home: `<svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg">${SVG_DEFS}<g filter="url(#icoShadow)"><path d="M12 2L2 11h3v11h14V11h3z" fill="url(#icoGold)" stroke="#8b6f2f" stroke-width="0.6"/><rect x="9" y="13" width="6" height="9" fill="#0f1117" stroke="#8b6f2f" stroke-width="0.6"/></g></svg>`
 };
 
-// ============ الأدوات ============
+// ============ 3. الأدوات ============
 function toast(m) {
   const t = $('#toast'); if (!t) return;
   t.textContent = m; t.classList.add('show');
@@ -109,7 +112,8 @@ function toggleTheme() {
   theme();
 }
 theme();
-// ============ التهيئة والمصادقة ============
+
+// ============ 4. التهيئة ============
 async function boot() {
   if (!sb) {
     app.innerHTML = `<div class="panel"><h2>إعداد Supabase مطلوب</h2><p style="color:var(--muted);line-height:2;margin-top:10px">املأ <b>config.js</b> بالقيم الصحيحة.</p></div>`;
@@ -130,7 +134,16 @@ async function loadProfile() {
   if (session) {
     const { data } = await sb.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
     profile = data;
+    await loadReaderSettings();
   }
+}
+
+async function loadReaderSettings() {
+  if (!session) return;
+  try {
+    const { data } = await sb.from('reader_settings').select('*').eq('user_id', session.user.id).maybeSingle();
+    if (data) readerSettings = data;
+  } catch (e) {}
 }
 
 function refreshHeader() {
@@ -175,7 +188,7 @@ async function signUp() {
 }
 async function signOut() { await sb.auth.signOut(); toast('تم تسجيل الخروج'); route(); }
 
-// ============ جلب البيانات ============
+// ============ 5. جلب البيانات ============
 async function fetchWorks(kind) {
   let q = sb.from('works').select('*').eq('published', true).order('updated_at', { ascending: false });
   if (kind) q = q.eq('kind', kind);
@@ -186,6 +199,15 @@ async function fetchFavorites() {
   if (!session) return [];
   const { data } = await sb.from('favorites').select('work_id');
   return (data || []).map(f => f.work_id);
+}
+async function fetchReadingStatuses() {
+  if (!session) return {};
+  try {
+    const { data } = await sb.from('reading_status').select('work_id, status');
+    const map = {};
+    (data || []).forEach(r => { map[r.work_id] = r.status; });
+    return map;
+  } catch (e) { return {}; }
 }
 async function isFavorite(workId) {
   if (!session) return false;
@@ -199,14 +221,21 @@ async function fetchLatestChapters(workId, limit = 4) {
   return data || [];
 }
 
-// ============ البطاقات ============
-function cardHTML(w, isFav) {
+// ============ 6. البطاقات ============
+function statusBadgeHTML(status) {
+  if (!status) return '';
+  const labels = { reading: 'أقرأ حالياً', plan: 'سأقرأ', completed: 'مكتمل', paused: 'متوقف' };
+  return `<span class="card-status-badge ${status}">${labels[status] || ''}</span>`;
+}
+
+function cardHTML(w, isFav, status) {
   return `<div class="card" onclick="go('work','${w.id}')">
     <div class="cover" style="background:linear-gradient(140deg,${esc(w.grad_a||'#1a237e')},${esc(w.grad_b||'#4a148c')})">
       ${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="${esc(w.title)}" loading="lazy">` : `<div style="font-size:2.5rem;opacity:.5">${ICONS.book}</div>`}
       <span class="age">${esc(w.age_rating||'13+')}</span>
       <span class="type">${esc(w.type)}</span>
       ${isFav ? `<span class="fav-badge">${ICONS.heartFilled}</span>` : ''}
+      ${statusBadgeHTML(status)}
     </div>
     <div class="cinfo">
       <h3>${esc(w.title)}</h3>
@@ -250,10 +279,11 @@ async function releaseCardHTML(w) {
   </div>`;
 }
 
-// ============ الصفحة الرئيسية ============
+// ============ 7. الصفحة الرئيسية ============
 async function vHome() {
   const works = await fetchWorks();
   const favs = await fetchFavorites();
+  const statuses = await fetchReadingStatuses();
   const top = [...works].sort((a,b)=>(b.rating||0)-(a.rating||0)).slice(0,5);
   const latest = works.slice(0,4);
   const today = works.slice(0,6);
@@ -282,13 +312,17 @@ async function vHome() {
   <div class="sec-title"><span class="line"></span>${ICONS.book} أحدث الإصدارات</div>
   <div class="releases-list">${releasesHTML || `<div class="empty"><span class="empty-icon">${ICONS.book}</span><p>لا توجد إصدارات</p></div>`}</div>
   <div class="sec-title"><span class="line"></span>${ICONS.lightning} شائع اليوم</div>
-  <div class="grid">${today.map(w=>cardHTML(w,favs.includes(w.id))).join('')}</div>`;
+  <div class="grid">${today.map(w=>cardHTML(w,favs.includes(w.id),statuses[w.id])).join('')}</div>`;
 }
 
-// ============ صفحة التصفح ============
+// ============ 8. صفحة التصفح ============
 async function vBrowse(kind) {
   const works = await fetchWorks(kind);
+  const favs = await fetchFavorites();
+  const statuses = await fetchReadingStatuses();
   browseWorks = works;
+  window.__favCache = favs;
+  window.__statusCache = statuses;
   fState = { types: [], genres: [], ages: [], status: [] };
   browseSort = 'new';
 
@@ -409,13 +443,17 @@ function drawBrowse() {
   }
   set('resultCount', `تم العثور على ${list.length} عمل`);
   const grid = document.getElementById('browseGrid');
-  if (grid) grid.innerHTML = list.length
-    ? list.map(w => cardHTML(w, false)).join('')
-    : `<div class="empty" style="grid-column:1/-1"><span class="empty-icon">${ICONS.search}</span><p>لا توجد نتائج</p></div>`;
+  if (grid) {
+    const favs = window.__favCache || [];
+    const statuses = window.__statusCache || {};
+    grid.innerHTML = list.length
+      ? list.map(w => cardHTML(w, favs.includes(w.id), statuses[w.id])).join('')
+      : `<div class="empty" style="grid-column:1/-1"><span class="empty-icon">${ICONS.search}</span><p>لا توجد نتائج</p></div>`;
+  }
   $$('.dropdown.show').forEach(d => buildDropdownContent(d.id));
 }
 
-// ============ صفحة العمل ============
+// ============ 9. صفحة العمل ============
 async function vWork(id) {
   const { data: w } = await sb.from('works').select('*').eq('id', id).maybeSingle();
   if (!w) return '<div class="panel">العمل غير موجود.</div>';
@@ -428,11 +466,19 @@ async function vWork(id) {
     try {
       const res = await sb.rpc('get_read_chapters', { p_work_id: id });
       readData = res.data || [];
-    } catch (e) { console.warn('get_read_chapters غير متاح:', e); }
+    } catch (e) {}
   }
   const readChapters = readData;
   const isFav = await isFavorite(id);
   const { data: progress } = session ? await sb.rpc('get_my_progress', { p_work_id: id }) : { data: null };
+  
+  let currentStatus = null;
+  if (session) {
+    try {
+      const r = await sb.rpc('get_reading_status', { p_work_id: id });
+      currentStatus = r.data;
+    } catch (e) {}
+  }
 
   const avg = ratingData?.average || 0;
   const cnt = ratingData?.count || 0;
@@ -457,6 +503,14 @@ async function vWork(id) {
     ? `<button class="btn ghost" onclick="go('read','${progress.chapter_id}')">${ICONS.book} متابعة القراءة</button>`
     : '';
 
+  const statusBarHTML = session ? `
+    <div class="reading-status-bar">
+      <button class="status-btn blue ${currentStatus === 'reading' ? 'active' : ''}" onclick="setReadingStatus('${id}','reading')">${ICONS.book}<span>أقرأ حالياً</span></button>
+      <button class="status-btn ${currentStatus === 'plan' ? 'active' : ''}" onclick="setReadingStatus('${id}','plan')">${ICONS.clock}<span>سأقرأ</span></button>
+      <button class="status-btn green ${currentStatus === 'completed' ? 'active' : ''}" onclick="setReadingStatus('${id}','completed')">${ICONS.check}<span>مكتمل</span></button>
+      <button class="status-btn red ${currentStatus === 'paused' ? 'active' : ''}" onclick="setReadingStatus('${id}','paused')">${ICONS.alert}<span>متوقف</span></button>
+    </div>` : '';
+
   return `<div class="work-head">
     <div class="work-cover" style="background:linear-gradient(140deg,${esc(w.grad_a||'#1a237e')},${esc(w.grad_b||'#4a148c')})">
       ${w.cover_url ? `<img src="${esc(w.cover_url)}" alt="${esc(w.title)}">` : `<div style="font-size:3rem;opacity:.5">${ICONS.book}</div>`}
@@ -479,6 +533,7 @@ async function vWork(id) {
       </div>
     </div>
   </div>
+  ${statusBarHTML}
   <div class="sec-title"><span class="line"></span>${ICONS.list} الفصول (${(chs||[]).length})</div>
   <div class="notice">الفصول المقفلة تُفتح بالنقاط. علامة "مقروء" تُضاف فقط عند إكمال الفصل.</div>
   ${(chs||[]).map(ch => {
@@ -497,6 +552,24 @@ async function vWork(id) {
     ? `<div class="panel"><div class="field"><textarea id="commentInput" placeholder="اكتب تعليقاً..." style="min-height:80px"></textarea></div><button class="btn" onclick="postComment('${id}')">نشر التعليق</button></div>`
     : '<div class="notice">سجّل الدخول للتعليق.</div>'}
   <div id="commentsList">${commentsHTML}</div>`;
+}
+
+async function setReadingStatus(workId, status) {
+  if (!session) return go('auth');
+  try {
+    const { data: existing } = await sb.from('reading_status').select('*').eq('user_id', session.user.id).eq('work_id', workId).maybeSingle();
+    if (existing?.status === status) {
+      await sb.from('reading_status').delete().eq('user_id', session.user.id).eq('work_id', workId);
+      toast('تم إزالة الحالة');
+    } else if (existing) {
+      await sb.from('reading_status').update({ status, updated_at: new Date().toISOString() }).eq('user_id', session.user.id).eq('work_id', workId);
+      toast('تم تحديث الحالة');
+    } else {
+      await sb.from('reading_status').insert({ user_id: session.user.id, work_id: workId, status });
+      toast('تمت إضافة الحالة');
+    }
+    route();
+  } catch (e) { toast('حدث خطأ'); }
 }
 
 async function toggleFavorite(workId) {
@@ -535,24 +608,26 @@ async function readChapter(id) {
   go('read', id);
 }
 
-// ============ القارئ ============
+// ============ 10. القارئ ============
 async function vReader(id) {
   const { data: ch, error } = await sb.rpc('get_chapter_for_reader', { p_chapter_id: id });
   if (error || !ch) return `<div class="error">${esc(error?.message||'الفصل غير متاح')}</div>`;
   if (session) await sb.rpc('save_progress', { p_work_id: ch.work_id, p_chapter_id: id, p_page: 1 });
 
   const { data: allChs } = await sb.from('chapters').select('id, number, title')
-    .eq('work_id', ch.work_id).eq('published', true)
-    .order('number', { ascending: true });
+    .eq('work_id', ch.work_id).eq('published', true).order('number', { ascending: true });
 
   const chapters = allChs || [];
   const curIdx = chapters.findIndex(c => c.id === id);
   const prevCh = curIdx > 0 ? chapters[curIdx - 1] : null;
   const nextCh = curIdx < chapters.length - 1 ? chapters[curIdx + 1] : null;
 
+  const rs = readerSettings;
   let body = '';
   if (ch.kind === 'novel') {
-    body = `<article class="novel-page"><h2>${esc(ch.title||'الفصل '+ch.number)}</h2>${(ch.content||'').split(/\n+/).map(p=>`<p>${esc(p)}</p>`).join('')}</article>`;
+    const fontSize = rs.font_size + 'px';
+    const lineHeight = rs.line_height;
+    body = `<article class="novel-page" style="font-size:${fontSize};line-height:${lineHeight}"><h2>${esc(ch.title||'الفصل '+ch.number)}</h2>${(ch.content||'').split(/\n+/).map(p=>`<p>${esc(p)}</p>`).join('')}</article>`;
   } else {
     const imgs = ch.pages || [];
     const urls = [];
@@ -565,10 +640,12 @@ async function vReader(id) {
 
   const isFav = await isFavorite(ch.work_id);
   const isLight = localStorage.noktaTheme === 'light';
+  const bgClass = rs.bg_color === 'default' ? '' : 'bg-' + rs.bg_color;
 
   setTimeout(() => {
     if (location.hash.includes('#/read/' + id)) {
       setupReaderTracking(id, ch.work_id);
+      applyReaderBrightness(rs.brightness);
     }
   }, 200);
 
@@ -576,17 +653,115 @@ async function vReader(id) {
     <button class="btn sm ghost" onclick="go('work','${ch.work_id}')">${ICONS.arrowRight} رجوع</button>
     <div class="reader-title">${esc(ch.work_title)} — الفصل ${ch.number}</div>
     <div class="reader-tools">
+      <button class="reader-tool-btn" onclick="toggleReaderSettings()" title="الإعدادات" id="settingsBtn">${ICONS.settings}</button>
       <button class="reader-tool-btn" onclick="toggleReaderWidth()" title="ملء الشاشة" id="fsBtn">${ICONS.maximize}</button>
       <button class="reader-tool-btn" onclick="toggleFavorite('${ch.work_id}')" title="المفضلة" style="${isFav?'color:var(--red)':''}">${isFav?ICONS.heartFilled:ICONS.heart}</button>
       <button class="reader-tool-btn" onclick="toggleTheme()" title="الوضع">${isLight?ICONS.moon:ICONS.sun}</button>
     </div>
   </div>
-  <div class="reader-body" id="readerBody">${body}</div>
+  <div class="reader-body ${bgClass}" id="readerBody" dir="${rs.reading_direction}">${body}</div>
   <div class="reader-nav">
     <button onclick="${prevCh ? `go('read','${prevCh.id}')` : 'return false'}" ${!prevCh ? 'disabled style="opacity:.4;cursor:not-allowed"' : ''}>${ICONS.arrowRight} السابق ${prevCh ? `(${prevCh.number})` : ''}</button>
     <button onclick="go('work','${ch.work_id}')" style="flex:0.7">${ICONS.list} كل الفصول</button>
     <button onclick="${nextCh ? `go('read','${nextCh.id}')` : 'return false'}" ${!nextCh ? 'disabled style="opacity:.4;cursor:not-allowed"' : ''}>التالي ${nextCh ? `(${nextCh.number})` : ''} ${ICONS.arrowLeft}</button>
+  </div>
+  <div class="reader-settings-panel" id="readerSettingsPanel">
+    <h4>${ICONS.settings} إعدادات القراءة</h4>
+    <div class="setting-group">
+      <label>وضع القراءة</label>
+      <div class="setting-options">
+        <div class="setting-option ${rs.reading_mode === 'webtoon' ? 'active' : ''}" onclick="updateReaderSetting('reading_mode','webtoon')">ويبتون</div>
+        <div class="setting-option ${rs.reading_mode === 'page' ? 'active' : ''}" onclick="updateReaderSetting('reading_mode','page')">صفحة</div>
+      </div>
+    </div>
+    <div class="setting-group">
+      <label>اتجاه القراءة</label>
+      <div class="setting-options">
+        <div class="setting-option ${rs.reading_direction === 'rtl' ? 'active' : ''}" onclick="updateReaderSetting('reading_direction','rtl')">من اليمين</div>
+        <div class="setting-option ${rs.reading_direction === 'ltr' ? 'active' : ''}" onclick="updateReaderSetting('reading_direction','ltr')">من اليسار</div>
+      </div>
+    </div>
+    <div class="setting-group">
+      <label>حجم الخط (${rs.font_size}px)</label>
+      <input type="range" class="setting-slider" min="12" max="32" value="${rs.font_size}" oninput="updateReaderSetting('font_size',parseInt(this.value))">
+    </div>
+    <div class="setting-group">
+      <label>تباعد الأسطر (${rs.line_height})</label>
+      <input type="range" class="setting-slider" min="1.2" max="3.5" step="0.1" value="${rs.line_height}" oninput="updateReaderSetting('line_height',parseFloat(this.value))">
+    </div>
+    <div class="setting-group">
+      <label>سطوع الشاشة (${rs.brightness}%)</label>
+      <input type="range" class="setting-slider" min="30" max="150" value="${rs.brightness}" oninput="updateReaderSetting('brightness',parseInt(this.value))">
+    </div>
+    <div class="setting-group">
+      <label>لون الخلفية</label>
+      <div class="setting-options">
+        <div class="setting-option ${rs.bg_color === 'default' ? 'active' : ''}" onclick="updateReaderSetting('bg_color','default')">افتراضي</div>
+        <div class="setting-option ${rs.bg_color === 'dark' ? 'active' : ''}" onclick="updateReaderSetting('bg_color','dark')">أسود</div>
+        <div class="setting-option ${rs.bg_color === 'gray' ? 'active' : ''}" onclick="updateReaderSetting('bg_color','gray')">رمادي</div>
+        <div class="setting-option ${rs.bg_color === 'sepia' ? 'active' : ''}" onclick="updateReaderSetting('bg_color','sepia')">بيج</div>
+        <div class="setting-option ${rs.bg_color === 'white' ? 'active' : ''}" onclick="updateReaderSetting('bg_color','white')">أبيض</div>
+      </div>
+    </div>
   </div>`;
+}
+
+function toggleReaderSettings() {
+  const panel = document.getElementById('readerSettingsPanel');
+  const btn = document.getElementById('settingsBtn');
+  if (panel) panel.classList.toggle('show');
+  if (btn) btn.classList.toggle('active');
+}
+
+async function updateReaderSetting(key, value) {
+  readerSettings[key] = value;
+  const body = document.getElementById('readerBody');
+  const panel = document.getElementById('readerSettingsPanel');
+  
+  if (key === 'font_size' && body) {
+    const np = body.querySelector('.novel-page');
+    if (np) np.style.fontSize = value + 'px';
+  }
+  if (key === 'line_height' && body) {
+    const np = body.querySelector('.novel-page');
+    if (np) np.style.lineHeight = value;
+  }
+  if (key === 'brightness') applyReaderBrightness(value);
+  if (key === 'bg_color' && body) {
+    body.classList.remove('bg-dark', 'bg-sepia', 'bg-gray', 'bg-white');
+    if (value !== 'default') body.classList.add('bg-' + value);
+  }
+  if (key === 'reading_direction' && body) body.dir = value;
+  
+  if (panel) {
+    panel.querySelectorAll('.setting-option').forEach(el => {
+      const oc = el.getAttribute('onclick') || '';
+      if (oc.includes(`'${key}','${value}'`)) el.classList.add('active');
+      else if (oc.includes(`'${key}'`)) el.classList.remove('active');
+    });
+    panel.querySelectorAll('.setting-group label').forEach(l => {
+      if (key === 'font_size' && l.textContent.includes('حجم الخط')) l.textContent = `حجم الخط (${value}px)`;
+      if (key === 'line_height' && l.textContent.includes('تباعد')) l.textContent = `تباعد الأسطر (${value})`;
+      if (key === 'brightness' && l.textContent.includes('سطوع')) l.textContent = `سطوع الشاشة (${value}%)`;
+    });
+  }
+  
+  if (!session) return;
+  clearTimeout(window.__rsTimeout);
+  window.__rsTimeout = setTimeout(async () => {
+    try {
+      const { data: existing } = await sb.from('reader_settings').select('*').eq('user_id', session.user.id).maybeSingle();
+      const payload = { user_id: session.user.id, [key]: value, updated_at: new Date().toISOString() };
+      if (existing) await sb.from('reader_settings').update(payload).eq('user_id', session.user.id);
+      else await sb.from('reader_settings').insert(payload);
+    } catch (e) {}
+  }, 600);
+}
+
+function applyReaderBrightness(value) {
+  const body = document.getElementById('readerBody');
+  if (!body) return;
+  body.style.filter = `brightness(${value / 100})`;
 }
 
 function toggleReaderWidth() {
@@ -673,17 +848,25 @@ async function markChapterAsRead(chapterId, workId) {
   if (!session) return;
   try {
     const { data, error } = await sb.rpc('mark_chapter_read', { p_chapter_id: chapterId });
-    if (error) { console.warn('mark_chapter_read error:', error.message); return; }
+    if (error) return;
     if (data?.ok) toast('✓ تم وضع علامة الفصل كمقروء');
-  } catch (e) { console.warn('markChapterAsRead:', e); }
+  } catch (e) {}
 }
 
-// ============ المكتبة والإشعارات ============
+// ============ 11. المكتبة ============
 async function vLibrary() {
   if (!session) return `<div class="empty" style="padding:80px 20px"><span class="empty-icon">${ICONS.library}</span><p>سجّل الدخول لعرض مكتبتك</p><button class="btn" style="margin-top:20px" onclick="go('auth')">تسجيل الدخول</button></div>`;
+  
   const { data: favs } = await sb.from('favorites').select('work_id, created_at, works(*)').eq('user_id', session.user.id).order('created_at', { ascending: false });
   const { data: progressList } = await sb.from('reading_progress').select('work_id, updated_at, works(*), chapters(number)').eq('user_id', session.user.id).order('updated_at', { ascending: false });
-  const favHTML = (favs||[]).map(f => f.works ? cardHTML(f.works, true) : '').join('');
+  
+  let statusList = [];
+  try {
+    const r = await sb.from('reading_status').select('work_id, status, updated_at, works(*)').eq('user_id', session.user.id);
+    statusList = r.data || [];
+  } catch (e) {}
+
+  const favHTML = (favs||[]).map(f => f.works ? cardHTML(f.works, true, null) : '').join('');
   const progHTML = (progressList||[]).map(p => {
     if (!p.works) return '';
     return `<div class="release-card">
@@ -695,16 +878,41 @@ async function vLibrary() {
       <div class="release-cover" onclick="go('work','${p.work_id}')">${p.works.cover_url ? `<img src="${esc(p.works.cover_url)}" alt="">` : ICONS.book}</div>
     </div>`;
   }).join('');
+
+  const filteredStatus = libraryTab === 'favorites' || libraryTab === 'progress' ? [] : statusList.filter(s => s.status === libraryTab);
+  const statusHTML = filteredStatus.map(s => s.works ? cardHTML(s.works, false, s.status) : '').join('');
+
+  const contentMap = {
+    favorites: favHTML ? `<div class="grid">${favHTML}</div>` : `<div class="empty"><span class="empty-icon">${ICONS.heart}</span><p>لا توجد أعمال في المفضلة</p></div>`,
+    progress: progHTML || `<div class="empty"><span class="empty-icon">${ICONS.book}</span><p>لا يوجد سجل قراءة</p></div>`,
+    reading: statusHTML ? `<div class="grid">${statusHTML}</div>` : `<div class="empty"><span class="empty-icon">${ICONS.book}</span><p>لا توجد أعمال تقرأها حالياً</p></div>`,
+    plan: statusHTML ? `<div class="grid">${statusHTML}</div>` : `<div class="empty"><span class="empty-icon">${ICONS.clock}</span><p>لا توجد أعمال في قائمة "سأقرأ"</p></div>`,
+    completed: statusHTML ? `<div class="grid">${statusHTML}</div>` : `<div class="empty"><span class="empty-icon">${ICONS.check}</span><p>لا توجد أعمال مكتملة</p></div>`,
+    paused: statusHTML ? `<div class="grid">${statusHTML}</div>` : `<div class="empty"><span class="empty-icon">${ICONS.alert}</span><p>لا توجد أعمال متوقفة</p></div>`
+  };
+
+  const counts = {
+    favorites: (favs||[]).length,
+    progress: (progressList||[]).length,
+    reading: statusList.filter(s => s.status === 'reading').length,
+    plan: statusList.filter(s => s.status === 'plan').length,
+    completed: statusList.filter(s => s.status === 'completed').length,
+    paused: statusList.filter(s => s.status === 'paused').length
+  };
+
   return `<div class="sec-title"><span class="line"></span>${ICONS.library} مكتبتي</div>
   <div class="tabs">
-    <button class="tab ${libraryTab==='favorites'?'on':''}" onclick="libraryTab='favorites';route()">${ICONS.heart} المفضلة (${(favs||[]).length})</button>
-    <button class="tab ${libraryTab==='progress'?'on':''}" onclick="libraryTab='progress';route()">${ICONS.book} سجل القراءة (${(progressList||[]).length})</button>
+    <button class="tab ${libraryTab==='favorites'?'on':''}" onclick="libraryTab='favorites';route()">${ICONS.heart} المفضلة (${counts.favorites})</button>
+    <button class="tab ${libraryTab==='progress'?'on':''}" onclick="libraryTab='progress';route()">${ICONS.book} سجل القراءة (${counts.progress})</button>
+    <button class="tab ${libraryTab==='reading'?'on':''}" onclick="libraryTab='reading';route()">${ICONS.book} أقرأ حالياً (${counts.reading})</button>
+    <button class="tab ${libraryTab==='plan'?'on':''}" onclick="libraryTab='plan';route()">${ICONS.clock} سأقرأ (${counts.plan})</button>
+    <button class="tab ${libraryTab==='completed'?'on':''}" onclick="libraryTab='completed';route()">${ICONS.check} مكتمل (${counts.completed})</button>
+    <button class="tab ${libraryTab==='paused'?'on':''}" onclick="libraryTab='paused';route()">${ICONS.alert} متوقف (${counts.paused})</button>
   </div>
-  ${libraryTab==='favorites'
-    ? (favHTML ? `<div class="grid">${favHTML}</div>` : `<div class="empty"><span class="empty-icon">${ICONS.heart}</span><p>لا توجد أعمال في المفضلة</p></div>`)
-    : (progHTML || `<div class="empty"><span class="empty-icon">${ICONS.book}</span><p>لا يوجد سجل قراءة</p></div>`)}`;
+  ${contentMap[libraryTab] || contentMap.favorites}`;
 }
 
+// ============ 12. الإشعارات ============
 async function vNotifications() {
   if (!session) return `<div class="empty" style="padding:80px 20px"><span class="empty-icon">${ICONS.bell}</span><p>سجّل الدخول لعرض الإشعارات</p><button class="btn" style="margin-top:20px" onclick="go('auth')">تسجيل الدخول</button></div>`;
   const { data } = await sb.from('notifications').select('*, works(title), chapters(number)').eq('user_id', session.user.id).order('created_at', { ascending: false }).limit(50);
@@ -721,7 +929,7 @@ async function vNotifications() {
   ${html || `<div class="empty"><span class="empty-icon">${ICONS.bell}</span><p>لا توجد إشعارات</p></div>`}`;
 }
 
-// ============ الفرق والانضمام ============
+// ============ 13. الفرق والانضمام ============
 async function vTeams() {
   const { data } = await sb.from('teams').select('*').eq('published', true).order('name');
   return `<div class="sec-title"><span class="line"></span>${ICONS.shield} فرق الترجمة</div>
@@ -753,7 +961,7 @@ async function submitJoin() {
   toast(error?error.message:'تم الإرسال'); if (!error) route();
 }
 
-// ============ المصادقة والنقاط والبحث ============
+// ============ 14. المصادقة والنقاط والبحث ============
 async function vAuth() {
   return `<div class="sec-title"><span class="line"></span>${ICONS.user} حسابك</div>
   <div class="panel" style="max-width:420px;margin:auto">
@@ -792,14 +1000,17 @@ async function createPayment(packId) {
 
 async function vSearch(q) {
   const { data } = await sb.from('works').select('*').eq('published', true).ilike('title', `%${q||''}%`);
+  const favs = await fetchFavorites();
+  const statuses = await fetchReadingStatuses();
   return `<div class="search-wrap"><div class="search-box">
     <span class="search-icon">${ICONS.search}</span>
     <input id="searchInput" placeholder="ابحث..." value="${esc(q||'')}" onkeydown="if(event.key==='Enter')go('search',this.value)">
   </div></div>
   <p class="result-count">نتائج: ${(data||[]).length}</p>
-  <div class="grid">${(data||[]).map(w=>cardHTML(w,false)).join('') || `<div class="empty" style="grid-column:1/-1"><span class="empty-icon">${ICONS.search}</span><p>لا نتائج</p></div>`}</div>`;
+  <div class="grid">${(data||[]).map(w=>cardHTML(w,favs.includes(w.id),statuses[w.id])).join('') || `<div class="empty" style="grid-column:1/-1"><span class="empty-icon">${ICONS.search}</span><p>لا نتائج</p></div>`}</div>`;
 }
-// ============ لوحة الإدارة الجديدة ============
+
+// ============ 15. لوحة الإدارة ============
 async function vAdmin() {
   if (profile?.role !== 'admin') return `<div class="panel"><h2>${ICONS.alert} غير مصرح</h2></div>`;
 
@@ -822,13 +1033,6 @@ async function vAdmin() {
     sb.from('notifications').select('id,message,created_at,type').order('created_at', { ascending: false }).limit(15)
   ]);
 
-  const recentWorks = works || [];
-  const recentChapters = chapters || [];
-  const pendingPayments = payments || [];
-  const pendingJoins = joins || [];
-  const allProfiles = profiles || [];
-  const activityFeed = notifications || [];
-
   const chartData = await getAdminChartData();
 
   const sidebarNav = `
@@ -846,15 +1050,15 @@ async function vAdmin() {
     </div>`;
 
   const panels = {
-    overview: buildOverviewPanel(worksCount, chaptersCount, usersCount, paymentsCount, chartData, activityFeed, recentWorks),
-    works: buildWorksPanel(recentWorks),
-    chapters: buildChaptersPanel(recentChapters),
-    users: buildUsersPanel(allProfiles),
-    bulk: buildBulkPanel(recentWorks),
-    payments: buildPaymentsPanel(pendingPayments),
-    joins: buildJoinsPanel(pendingJoins),
+    overview: buildOverviewPanel(worksCount, chaptersCount, usersCount, paymentsCount, chartData, notifications || [], works || []),
+    works: buildWorksPanel(works || []),
+    chapters: buildChaptersPanel(chapters || []),
+    users: buildUsersPanel(profiles || []),
+    bulk: buildBulkPanel(works || []),
+    payments: buildPaymentsPanel(payments || []),
+    joins: buildJoinsPanel(joins || []),
     'add-work': buildAddWorkPanel(),
-    'add-chapter': buildAddChapterPanel(recentWorks)
+    'add-chapter': buildAddChapterPanel(works || [])
   };
 
   const activePanel = panels[adminTab] || panels.overview;
@@ -883,15 +1087,12 @@ async function getAdminChartData() {
     sb.from('chapters').select('created_at').gte('created_at', isoDate)
   ]);
 
-  const labels = [];
-  const usersData = [];
-  const chaptersData = [];
+  const labels = [], usersData = [], chaptersData = [];
 
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    const dayName = d.toLocaleDateString('ar', { weekday: 'short' });
-    labels.push(dayName);
+    labels.push(d.toLocaleDateString('ar', { weekday: 'short' }));
     const dayStr = d.toISOString().split('T')[0];
     usersData.push((newUsers || []).filter(u => u.created_at.startsWith(dayStr)).length);
     chaptersData.push((newChapters || []).filter(c => c.created_at.startsWith(dayStr)).length);
@@ -901,38 +1102,35 @@ async function getAdminChartData() {
 }
 
 function initAdminCharts(chartData) {
-  const usersCanvas = document.getElementById('adminChartUsers');
-  if (usersCanvas) {
-    if (adminChartInstance) adminChartInstance.destroy();
-    adminChartInstance = new Chart(usersCanvas, {
-      type: 'line',
-      data: {
-        labels: chartData.labels,
-        datasets: [
-          { label: 'فصول جديدة', data: chartData.chaptersData, borderColor: '#ef3f56', backgroundColor: 'rgba(239,63,86,.15)', borderWidth: 2.5, tension: 0.4, fill: true, pointBackgroundColor: '#ef3f56', pointBorderColor: '#fff', pointRadius: 4 },
-          { label: 'مستخدمون جدد', data: chartData.usersData, borderColor: '#c9a961', backgroundColor: 'rgba(201,169,97,.15)', borderWidth: 2.5, tension: 0.4, fill: true, pointBackgroundColor: '#c9a961', pointBorderColor: '#fff', pointRadius: 4 }
-        ]
+  const canvas = document.getElementById('adminChartUsers');
+  if (!canvas) return;
+  if (adminChartInstance) adminChartInstance.destroy();
+  adminChartInstance = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: chartData.labels,
+      datasets: [
+        { label: 'فصول جديدة', data: chartData.chaptersData, borderColor: '#ef3f56', backgroundColor: 'rgba(239,63,86,.15)', borderWidth: 2.5, tension: 0.4, fill: true, pointBackgroundColor: '#ef3f56', pointBorderColor: '#fff', pointRadius: 4 },
+        { label: 'مستخدمون جدد', data: chartData.usersData, borderColor: '#c9a961', backgroundColor: 'rgba(201,169,97,.15)', borderWidth: 2.5, tension: 0.4, fill: true, pointBackgroundColor: '#c9a961', pointBorderColor: '#fff', pointRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#a8a49a', font: { family: 'Cairo', size: 11, weight: '800' } } },
+        tooltip: { backgroundColor: 'rgba(8,8,12,.95)', titleColor: '#e0c88a', bodyColor: '#ede9e0', borderColor: 'rgba(201,169,97,.3)', borderWidth: 1, padding: 12 }
       },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: {
-          legend: { labels: { color: '#a8a49a', font: { family: 'Cairo', size: 11, weight: '800' } } },
-          tooltip: { backgroundColor: 'rgba(8,8,12,.95)', titleColor: '#e0c88a', bodyColor: '#ede9e0', borderColor: 'rgba(201,169,97,.3)', borderWidth: 1, padding: 12 }
-        },
-        scales: {
-          x: { grid: { color: 'rgba(201,169,97,.08)' }, ticks: { color: '#6b6860', font: { family: 'Cairo', size: 10 } } },
-          y: { grid: { color: 'rgba(201,169,97,.08)' }, ticks: { color: '#6b6860', font: { family: 'Cairo', size: 10 }, stepSize: 1 }, beginAtZero: true }
-        }
+      scales: {
+        x: { grid: { color: 'rgba(201,169,97,.08)' }, ticks: { color: '#6b6860', font: { family: 'Cairo', size: 10 } } },
+        y: { grid: { color: 'rgba(201,169,97,.08)' }, ticks: { color: '#6b6860', font: { family: 'Cairo', size: 10 }, stepSize: 1 }, beginAtZero: true }
       }
-    });
-  }
+    }
+  });
 }
 
 function buildOverviewPanel(worksCount, chaptersCount, usersCount, paymentsCount, chartData, activityFeed, recentWorks) {
   return `
-  <div class="admin-header">
-    <h2>${ICONS.settings} نظرة عامة</h2>
-  </div>
+  <div class="admin-header"><h2>${ICONS.settings} نظرة عامة</h2></div>
   <div class="kpi-grid">
     <div class="kpi-card" onclick="switchAdminTab('works')">
       <div class="kpi-icon">${ICONS.library}</div>
@@ -1182,21 +1380,16 @@ function buildAddChapterPanel(works) {
 
 function adminSearch(query) {
   adminSearchQuery = query;
-  // حفظ القيمة قبل إعادة البناء
-  const currentInput = document.activeElement;
-  const cursorPos = currentInput?.selectionStart || 0;
+  const cur = document.activeElement;
+  const pos = cur?.selectionStart || 0;
   route();
-  // استعادة التركيز
   setTimeout(() => {
-    const newInput = document.querySelector('.admin-search input');
-    if (newInput) {
-      newInput.focus();
-      newInput.setSelectionRange(cursorPos, cursorPos);
-    }
+    const inp = document.querySelector('.admin-search input');
+    if (inp) { inp.focus(); inp.setSelectionRange(pos, pos); }
   }, 50);
 }
 
-// ============ عمليات الإدارة ============
+// ============ 16. عمليات الإدارة ============
 async function adminAddWork() {
   const p = {
     title: $('#awTitle').value.trim(), type: $('#awType').value, kind: $('#awKind').value,
@@ -1325,13 +1518,12 @@ async function copyTxt(t) {
   catch { toast('انسخ يدوياً'); }
 }
 
-// ============ الرفع الجماعي (مُصلح) ============
+// ============ 17. الرفع الجماعي ============
 function initBulkUploader() {
   const input = document.getElementById('bulkInput');
   const uploader = document.getElementById('bulkUploader');
   if (!input || !uploader) return;
 
-  // ✅ منع الحلقة اللانهائية
   input.addEventListener('click', (e) => { e.stopPropagation(); });
   uploader.addEventListener('click', (e) => {
     if (e.target !== input) {
@@ -1461,17 +1653,14 @@ function closeBulkFloating() {
   if (f) { f.classList.remove('show'); f.classList.remove('minimized'); }
 }
 
-// ============ الراوتر ============
+// ============ 18. الراوتر ============
 async function route() {
   const h = location.hash.replace(/^#\/?/, '').split('/');
   const page = h[0] || 'home';
   const id = h[1];
 
-  // ✅ إصلاح: إزالة وضع ملء الشاشة عند التنقل
   document.body.classList.remove('reading-fullscreen');
-  try {
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-  } catch (e) {}
+  try { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } catch (e) {}
 
   $$('.sidebar-nav a').forEach(a => a.classList.toggle('on', a.dataset.r === page));
   const s = $('#sidebar'); if (s) s.classList.remove('show');
@@ -1500,7 +1689,6 @@ async function route() {
     else html = await vHome();
 
     app.innerHTML = html;
-    if (page === 'comics' || page === 'novels') drawBrowse();
     if (page === 'admin' && adminTab === 'bulk') initBulkUploader();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } catch (e) {
@@ -1511,5 +1699,5 @@ async function route() {
 
 window.addEventListener('hashchange', route);
 
-// ============ البدء ============
+// ============ 19. البدء ============
 boot();
